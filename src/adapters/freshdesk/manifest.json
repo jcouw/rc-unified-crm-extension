@@ -7,14 +7,14 @@
     },
     "platforms": {
         "freshdesk": {
-            "logoUrl": "https://avatars.githubusercontent.com/u/6549285?s=200&v=4",
+            "logoUrl": "https://raw.githubusercontent.com/ringcentral/rc-unified-crm-extension/main/docs/img/CRMLogos/Freshdesk_Logo.png",
             "documentationUrl": "https://ringcentral.github.io/rc-unified-crm-extension",
             "releaseNotesUrl": "https://ringcentral.github.io/rc-unified-crm-extension/release-notes/",
             "getSupportUrl": "https://community.ringcentral.com/topic/new?fid=22",
             "writeReviewUrl": "https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh/reviews",
             "urlIdentifier": "*.freshdesk.com",
             "name": "freshdesk",
-            "displayName": "freshdesk",
+            "displayName": "Freshdesk",
             "enableExtensionNumberLoggingSetting": true,
             "requestConfig": {
                 "timeout": 30
