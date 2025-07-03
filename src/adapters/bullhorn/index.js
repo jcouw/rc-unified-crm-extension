@@ -3,6 +3,8 @@ const axios = require('axios');
 const moment = require('moment');
 const { parsePhoneNumber } = require('awesome-phonenumber');
 const { secondsToHoursMinutesSeconds } = require('../../lib/util');
+const jwt = require('../../lib/jwt');
+const { UserModel } = require('../../models/userModel');
 
 function getAuthType() {
     return 'oauth';
@@ -86,6 +88,7 @@ async function getUserInfo({ authHeader, tokenUrl, apiUrl, username }) {
         const timezoneOffset = userData.timeZoneOffsetEST - 5 * 60;
         const timezoneName = '';
         const platformAdditionalInfo = {
+            id: userData.id,
             tokenUrl,
             restUrl,
             loginUrl: apiUrl,
@@ -174,18 +177,9 @@ async function findContact({ user, phoneNumber }) {
             });
     }
     catch (e) {
-        if (isAuthError(e.response.status)) {
-            user = await refreshSessionToken(user);
-            commentActionListResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}settings/commentActionList`,
-                {
-                    headers: {
-                        BhRestToken: user.platformAdditionalInfo.bhRestToken
-                    }
-                });
-        }
         extraDataTracking['statusCode'] = e.response.status;
     }
-    const commentActionList = commentActionListResponse.data.commentActionList.map(a => { return { const: a, title: a } });
+    const commentActionList = commentActionListResponse ? commentActionListResponse.data.commentActionList.map(a => { return { const: a, title: a } }) : [];
     const phoneNumberObj = parsePhoneNumber(phoneNumber.replace(' ', '+'));
     const phoneNumberWithoutCountryCode = phoneNumberObj.number.significant;
     const matchedContactInfo = [];
@@ -231,9 +225,9 @@ async function findContact({ user, phoneNumber }) {
     }
     // check for Lead
     const leadPersonInfo = await axios.post(
-        `${user.platformAdditionalInfo.restUrl}search/Lead?fields=id,name,email,phone'`,
+        `${user.platformAdditionalInfo.restUrl}search/Lead?fields=id,name,email,phone,status'`,
         {
-            query: `(phone:${phoneNumberWithoutCountryCode} OR mobile:${phoneNumberWithoutCountryCode} OR phone2:${phoneNumberWithoutCountryCode} OR phone3:${phoneNumberWithoutCountryCode}) AND isDeleted:false`
+            query: `(phone:${phoneNumberWithoutCountryCode} OR mobile:${phoneNumberWithoutCountryCode} OR phone2:${phoneNumberWithoutCountryCode} OR phone3:${phoneNumberWithoutCountryCode}) AND isDeleted:false NOT status:"Converted"`
         },
         {
             headers: {
@@ -255,12 +249,68 @@ async function findContact({ user, phoneNumber }) {
         ratelimitReset: candidatePersonInfo.headers['ratelimit-reset']
     };
 
-    matchedContactInfo.push({
-        id: 'createNewContact',
-        name: 'Create new contact...',
-        additionalInfo: commentActionList?.length > 0 ? { noteActions: commentActionList } : null,
-        isNewContact: true
-    });
+    if (matchedContactInfo.length === 0) {
+        let leadStatuses = [];
+        try {
+            const leadMetaResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}meta/Lead?fields=status`,
+                {
+                    headers: {
+                        BhRestToken: user.platformAdditionalInfo.bhRestToken
+                    }
+                });
+            leadStatuses = leadMetaResponse.data.fields.find(f => f.name === 'status').options.map(s => { return { const: s.value, title: s.label } });
+        }
+        catch (e) {
+            extraDataTracking['statusCode'] = e.response.status;
+        }
+        let candidateStatuses = [];
+        try {
+            const candidateMetaResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}meta/Candidate?fields=status`,
+                {
+                    headers: {
+                        BhRestToken: user.platformAdditionalInfo.bhRestToken
+                    }
+                });
+            candidateStatuses = candidateMetaResponse.data.fields.find(f => f.name === 'status').options.map(s => { return { const: s.value, title: s.label } });
+        }
+        catch (e) {
+            extraDataTracking['statusCode'] = e.response.status;
+        }
+        let contactStatuses = [];
+        try {
+            const contactMetaResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}meta/ClientContact?fields=status`,
+                {
+                    headers: {
+                        BhRestToken: user.platformAdditionalInfo.bhRestToken
+                    }
+                });
+            contactStatuses = contactMetaResponse.data.fields.find(f => f.name === 'status').options.map(s => { return { const: s.value, title: s.label } });
+        }
+        catch (e) {
+            extraDataTracking['statusCode'] = e.response.status;
+        }
+        const newContactAdditionalInfo = {
+            Lead: {
+                status: leadStatuses
+            },
+            Candidate: {
+                status: candidateStatuses
+            },
+            Contact: {
+                status: contactStatuses
+            }
+        }
+        if (commentActionList?.length > 0) {
+            newContactAdditionalInfo.noteActions = commentActionList;
+        }
+        matchedContactInfo.push({
+            id: 'createNewContact',
+            name: 'Create new contact...',
+            additionalInfo: newContactAdditionalInfo ?? null,
+            isNewContact: true,
+            defaultContactType: 'Lead'
+        });
+    }
 
     return {
         successful: true,
@@ -269,7 +319,7 @@ async function findContact({ user, phoneNumber }) {
     };
 }
 
-async function createContact({ user, authHeader, phoneNumber, newContactName, newContactType }) {
+async function createContact({ user, authHeader, phoneNumber, newContactName, newContactType, additionalSubmission }) {
     let commentActionListResponse;
     let extraDataTracking = {};
     try {
@@ -300,7 +350,8 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
                 name: newContactName,
                 firstName: newContactName.split(' ')[0],
                 lastName: newContactName.split(' ').length > 1 ? newContactName.split(' ')[1] : '',
-                phone: phoneNumber.replace(' ', '+')
+                phone: phoneNumber.replace(' ', '+'),
+                status: additionalSubmission.status
             }
             const leadInfoResp = await axios.put(
                 `${user.platformAdditionalInfo.restUrl}entity/Lead`,
@@ -335,7 +386,8 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
                 name: newContactName,
                 firstName: newContactName.split(' ')[0],
                 lastName: newContactName.split(' ').length > 1 ? newContactName.split(' ')[1] : '',
-                phone: phoneNumber.replace(' ', '+')
+                phone: phoneNumber.replace(' ', '+'),
+                status: additionalSubmission.status
             }
             const candidateInfoResp = await axios.put(
                 `${user.platformAdditionalInfo.restUrl}entity/Candidate`,
@@ -403,7 +455,8 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
                 phone: phoneNumber.replace(' ', '+'),
                 clientCorporation: {
                     id: companyId
-                }
+                },
+                status: additionalSubmission.status
             }
             const contactInfoResp = await axios.put(
                 `${user.platformAdditionalInfo.restUrl}entity/ClientContact`,
@@ -437,14 +490,205 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
     }
 }
 
+async function findContactWithName({ user, authHeader, name }) {
+    let commentActionListResponse;
+    let extraDataTracking = {};
+    try {
+        commentActionListResponse = await axios.get(
+            `${user.platformAdditionalInfo.restUrl}settings/commentActionList`,
+            {
+                headers: {
+                    BhRestToken: user.platformAdditionalInfo.bhRestToken
+                }
+            });
+    }
+    catch (e) {
+        if (isAuthError(e.response.status)) {
+            user = await refreshSessionToken(user);
+            commentActionListResponse = await axios.get(`${user.platformAdditionalInfo.restUrl}settings/commentActionList`,
+                {
+                    headers: {
+                        BhRestToken: user.platformAdditionalInfo.bhRestToken
+                    }
+                });
+        }
+        extraDataTracking['statusCode'] = e.response.status;
+    }
+    const commentActionList = commentActionListResponse.data.commentActionList.map(a => { return { const: a, title: a } });
+    const matchedContactInfo = [];
+    // Search by full name components
+    const nameComponents = name.trim().split(' ');
+    const searchQueries = [];
+
+    // Full name exact match
+    searchQueries.push(`name:"${name}" AND isDeleted:false`);
+
+    // First + Last name combinations
+    // if (nameComponents.length >= 2) {
+    //     const firstName = nameComponents[0];
+    //     const lastName = nameComponents[nameComponents.length - 1];
+    //     searchQueries.push(`firstName:${firstName} AND lastName:${lastName} AND isDeleted:false`);
+    // }
+
+    // First name only
+    searchQueries.push(`firstName:${nameComponents[0]} AND isDeleted:false`);
+
+    // Last name only if provided
+    if (nameComponents.length > 1) {
+        searchQueries.push(`lastName:${nameComponents[nameComponents.length - 1]} AND isDeleted:false`);
+    }
+    const combinedQuery = searchQueries.map(query => `(${query})`).join(' OR ');
+    // Make single API call with combined query
+    const contactSearchResponse = await axios.post(
+        `${user.platformAdditionalInfo.restUrl}search/ClientContact?fields=id,name,email,phone'`,
+        { query: combinedQuery },
+        {
+            headers: {
+                BhRestToken: user.platformAdditionalInfo.bhRestToken
+            }
+        }
+    );
+    const seenIds = new Set();
+    const uniqueContactResults = [];
+    if (!!contactSearchResponse?.data?.data) {
+        contactSearchResponse.data.data.forEach(result => {
+            if (!seenIds.has(result.id)) {
+                seenIds.add(result.id);
+                uniqueContactResults.push(result);
+            }
+        });
+    }
+    for (const result of uniqueContactResults) {
+        matchedContactInfo.push({
+            id: result.id,
+            name: result.name,
+            phone: result.phone,
+            type: 'Contact',
+            additionalInfo: commentActionList?.length > 0 ? { noteActions: commentActionList } : null
+        });
+    }
+
+    const candidatePersonInfo = await axios.post(
+        `${user.platformAdditionalInfo.restUrl}search/Candidate?fields=id,name,email,phone'`,
+        {
+            query: combinedQuery
+        },
+        {
+            headers: {
+                BhRestToken: user.platformAdditionalInfo.bhRestToken
+            }
+        }
+    );
+    const candidateIds = new Set();
+    const uniqueCandidateResults = [];
+    if (candidatePersonInfo?.data?.data) {
+        candidatePersonInfo.data.data.forEach(result => {
+            if (!candidateIds.has(result.id)) {
+                candidateIds.add(result.id);
+                uniqueCandidateResults.push(result);
+            }
+        });
+    }
+    for (const result of uniqueCandidateResults) {
+        matchedContactInfo.push({
+            id: result.id,
+            name: result.name,
+            phone: result.phone,
+            type: 'Candidate',
+            additionalInfo: commentActionList?.length > 0 ? { noteActions: commentActionList } : null
+        });
+    }
+
+    //Search Candidates
+    const leadPersonInfo = await axios.post(
+        `${user.platformAdditionalInfo.restUrl}search/Lead?fields=id,name,email,phone,status'`,
+        {
+            query: combinedQuery
+        },
+        {
+            headers: {
+                BhRestToken: user.platformAdditionalInfo.bhRestToken
+            }
+        }
+    );
+    const leadIds = new Set();
+    const uniqueLeadResults = [];
+    if (leadPersonInfo?.data?.data) {
+        leadPersonInfo.data.data.forEach(result => {
+            if (!leadIds.has(result.id)) {
+                leadIds.add(result.id);
+                uniqueLeadResults.push(result);
+            }
+        });
+    }
+    for (const result of uniqueLeadResults) {
+        matchedContactInfo.push({
+            id: result.id,
+            name: result.name,
+            phone: result.phone,
+            type: 'Lead',
+            additionalInfo: commentActionList?.length > 0 ? { noteActions: commentActionList } : null
+        });
+    }
+    extraDataTracking = {
+        ratelimitRemaining: leadPersonInfo.headers['ratelimit-remaining'],
+        ratelimitAmount: leadPersonInfo.headers['ratelimit-limit'],
+        ratelimitReset: leadPersonInfo.headers['ratelimit-reset']
+    };
+    return {
+        successful: true,
+        matchedContactInfo,
+        extraDataTracking
+    };
+}
+
 async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript }) {
-    const noteActions = additionalSubmission.noteActions ?? null;
+    const noteActions = (additionalSubmission?.noteActions ?? '') || 'pending note';
+    let assigneeId = null;
+    if (additionalSubmission?.isAssignedToUser) {
+        if (additionalSubmission.adminAssignedUserToken) {
+            try {
+                const unAuthData = jwt.decodeJwt(additionalSubmission.adminAssignedUserToken);
+                const assigneeUser = await UserModel.findByPk(unAuthData.id);
+                if (assigneeUser) {
+                    assigneeId = assigneeUser.platformAdditionalInfo.id;
+                }
+            }
+            catch (e) {
+                console.log('Error decoding admin assigned user token', e);
+            }
+        }
+
+        if (!assigneeId) {
+            try {
+                const userInfoResponse = await axios.get(
+                    `${user.platformAdditionalInfo.restUrl}query/CorporateUser?fields=id,firstName,lastName&where=isDeleted=false`,
+                    {
+                        headers: {
+                            BhRestToken: user.platformAdditionalInfo.bhRestToken
+                        }
+                    }
+                );
+                if (userInfoResponse?.data?.data?.length > 0) {
+                    const targetUserRcName = additionalSubmission.adminAssignedUserName;
+                    const targetUser = userInfoResponse.data.data.find(u => `${u.firstName} ${u.lastName}` === targetUserRcName);
+                    if (targetUser) {
+                        assigneeId = targetUser.id;
+                    }
+                }
+            }
+            catch (e) {
+                console.log('Error getting user data from phone number', e);
+            }
+        }
+    }
     const subject = callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? `to ${contactInfo.name}` : `from ${contactInfo.name}`}`;
     let comments = '';;
     if (user.userSettings?.addCallLogNote?.value ?? true) { comments = upsertCallAgentNote({ body: comments, note }); }
     comments += '<b>Call details</b><ul>';
+    if (user.userSettings?.addCallSessionId?.value ?? false) { comments = upsertCallSessionId({ body: comments, id: callLog.sessionId }); }
     if (user.userSettings?.addCallLogSubject?.value ?? true) { comments = upsertCallSubject({ body: comments, subject }); }
-    if (user.userSettings?.addCallLogContactNumber?.value ?? true) { comments = upsertContactPhoneNumber({ body: comments, phoneNumber: contactInfo.phoneNumber, direction: callLog.direction }); }
+    if (user.userSettings?.addCallLogContactNumber?.value ?? false) { comments = upsertContactPhoneNumber({ body: comments, phoneNumber: contactInfo.phoneNumber, direction: callLog.direction }); }
     if (user.userSettings?.addCallLogDateTime?.value ?? true) { comments = upsertCallDateTime({ body: comments, startTime: callLog.startTime, timezoneOffset: user.timezoneOffset }); }
     if (user.userSettings?.addCallLogDuration?.value ?? true) { comments = upsertCallDuration({ body: comments, duration: callLog.duration }); }
     if (user.userSettings?.addCallLogResult?.value ?? true) { comments = upsertCallResult({ body: comments, result: callLog.result }); }
@@ -457,12 +701,15 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         personReference: {
             id: contactInfo.id
         },
+        action: noteActions,
         dateAdded: callLog.startTime,
         externalID: callLog.sessionId,
         minutesSpent: callLog.duration / 60
     }
-    if (noteActions) {
-        putBody.action = noteActions;
+    if (assigneeId) {
+        putBody.commentingPerson = {
+            id: assigneeId
+        }
     }
     let addLogRes;
     let extraDataTracking = {
@@ -508,7 +755,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
     };
 }
 
-async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript }) {
+async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript, additionalSubmission }) {
     const existingBullhornLogId = existingCallLog.thirdPartyLogId;
     let getLogRes
     let extraDataTracking = {};;
@@ -542,6 +789,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
     let comments = getLogRes.data.data.comments;
 
     if (!!note && (user.userSettings?.addCallLogNote?.value ?? true)) { comments = upsertCallAgentNote({ body: comments, note }); }
+    if (!!existingCallLog.sessionId && (user.userSettings?.addCallSessionId?.value ?? false)) { comments = upsertCallSessionId({ body: comments, id: existingCallLog.sessionId }); }
     if (!!subject && (user.userSettings?.addCallLogSubject?.value ?? true)) { comments = upsertCallSubject({ body: comments, subject }); }
     if (!!startTime && (user.userSettings?.addCallLogDateTime?.value ?? true)) { comments = upsertCallDateTime({ body: comments, startTime, timezoneOffset: user.timezoneOffset }); }
     if (!!duration && (user.userSettings?.addCallLogDuration?.value ?? true)) { comments = upsertCallDuration({ body: comments, duration }); }
@@ -550,11 +798,40 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
     if (!!aiNote && (user.userSettings?.addCallLogAiNote?.value ?? true)) { comments = upsertAiNote({ body: comments, aiNote }); }
     if (!!transcript && (user.userSettings?.addCallLogTranscript?.value ?? true)) { comments = upsertTranscript({ body: comments, transcript }); }
 
+    // case: reassign to user
+    let assigneeId = null;
+    if (additionalSubmission?.isAssignedToUser) {
+        try {
+            const userInfoResponse = await axios.get(
+                `${user.platformAdditionalInfo.restUrl}query/CorporateUser?fields=id,firstName,lastName&where=isDeleted=false`,
+                {
+                    headers: {
+                        BhRestToken: user.platformAdditionalInfo.bhRestToken
+                    }
+                }
+            );
+            if (userInfoResponse?.data?.data?.length > 0) {
+                const targetUserRcName = additionalSubmission.adminAssignedUserName;
+                const targetUser = userInfoResponse.data.data.find(u => `${u.firstName} ${u.lastName}` === targetUserRcName);
+                if (targetUser) {
+                    assigneeId = targetUser.id;
+                }
+            }
+        }
+        catch (e) {
+            console.log('Error getting user data from phone number', e);
+        }
+    }
     // I dunno, Bullhorn just uses POST as PATCH
     const postBody = {
         comments,
         dateAdded: startTime,
         minutesSpent: duration / 60
+    }
+    if (assigneeId) {
+        postBody.commentingPerson = {
+            id: assigneeId
+        }
     }
     try {
         const postLogRes = await axios.post(
@@ -608,10 +885,11 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
 
 async function upsertCallDisposition({ user, existingCallLog, authHeader, dispositions }) {
     let extraDataTracking = {};
+    const noteActions = (dispositions.noteActions ?? '') || 'pending note';
 
     const existingBullhornLogId = existingCallLog.thirdPartyLogId;
     const postBody = {
-        action: dispositions.noteActions
+        action: noteActions
     }
     try {
         const upsertDispositionRes = await axios.post(
@@ -659,7 +937,7 @@ async function upsertCallDisposition({ user, existingCallLog, authHeader, dispos
 }
 
 async function createMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, faxDocLink }) {
-    const noteActions = additionalSubmission.noteActions ?? '';
+    const noteActions = additionalSubmission?.noteActions ?? '';
     let userInfoResponse;
     let extraDataTracking = {};;
     try {
@@ -928,6 +1206,17 @@ function upsertCallAgentNote({ body, note }) {
     }
     return body;
 }
+
+function upsertCallSessionId({ body, id }) {
+    const idRegex = RegExp('<li><b>Session Id</b>: (.+?)(?:<li>|</ul>)');
+    if (idRegex.test(body)) {
+        body = body.replace(idRegex, (match, p1) => `<li><b>Session Id</b>: ${id}${p1.endsWith('</ul>') ? '</ul>' : '<li>'}`);
+    } else {
+        body += `<li><b>Session Id</b>: ${id}<li>`;
+    }
+    return body;
+}
+
 function upsertCallSubject({ body, subject }) {
     const subjectRegex = RegExp('<li><b>Summary</b>: (.+?)(?:<li>|</ul>)');
     if (subjectRegex.test(body)) {
@@ -1046,3 +1335,4 @@ exports.getCallLog = getCallLog;
 exports.findContact = findContact;
 exports.createContact = createContact;
 exports.unAuthorize = unAuthorize;
+exports.findContactWithName = findContactWithName;  

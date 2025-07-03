@@ -275,7 +275,8 @@ async function updateCallLog({ platform, userId, incomingData }) {
                 duration: incomingData.duration,
                 result: incomingData.result,
                 aiNote: incomingData.aiNote,
-                transcript: incomingData.transcript
+                transcript: incomingData.transcript,
+                additionalSubmission: incomingData.additionalSubmission
             });
             return { successful: true, logId: existingCallLog.thirdPartyLogId, updatedNote, returnMessage, extraDataTracking };
         }
@@ -407,8 +408,10 @@ async function createMessageLog({ platform, userId, incomingData }) {
                 recordingLink = message.attachments.find(a => a.type === 'AudioRecording').link;
             }
             let faxDocLink = null;
+            let faxDownloadLink = null;
             if (message.attachments && message.attachments.some(a => a.type === 'RenderedDocument')) {
                 faxDocLink = message.attachments.find(a => a.type === 'RenderedDocument').link;
+                faxDownloadLink = message.attachments.find(a => a.type === 'RenderedDocument').uri + `?access_token=${incomingData.logInfo.rcAccessToken}`
             }
             const existingSameDateMessageLog = await MessageLogModel.findOne({
                 where: {
@@ -417,12 +420,12 @@ async function createMessageLog({ platform, userId, incomingData }) {
             });
             let crmLogId = ''
             if (existingSameDateMessageLog) {
-                const updateMessageResult = await platformModule.updateMessageLog({ user, contactInfo, existingMessageLog: existingSameDateMessageLog, message, authHeader });
+                const updateMessageResult = await platformModule.updateMessageLog({ user, contactInfo, existingMessageLog: existingSameDateMessageLog, message, authHeader, additionalSubmission });
                 crmLogId = existingSameDateMessageLog.thirdPartyLogId;
                 returnMessage = updateMessageResult?.returnMessage;
             }
             else {
-                const createMessageLogResult = await platformModule.createMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, faxDocLink });
+                const createMessageLogResult = await platformModule.createMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, faxDocLink, faxDownloadLink });
                 crmLogId = createMessageLogResult.logId;
                 returnMessage = createMessageLogResult?.returnMessage;
                 extraDataTracking = createMessageLogResult.extraDataTracking;

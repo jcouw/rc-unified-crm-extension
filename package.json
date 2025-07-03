@@ -1,6 +1,6 @@
 {
   "name": "rc-unified-crm-extension-server",
-  "version": "1.4.2",
+  "version": "1.5.4",
   "description": "RingCentral App Connect",
   "main": "index.js",
   "bin": {
@@ -21,7 +21,8 @@
     "build-test": "node ./scripts/serverless-build-test",
     "deploy-test": "node ./scripts/serverless-deploy-test",
     "dynamo-local": "node ./scripts/dynamo-local.js",
-    "htt": "node ./tests/highTrafficTestRun.js"
+    "htt": "node ./tests/highTrafficTestRun.js",
+    "postinstall": "node ./scripts/patch-client-oauth2.js"
   },
   "repository": {
     "type": "git",

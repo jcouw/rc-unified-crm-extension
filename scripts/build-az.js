@@ -14,7 +14,9 @@ rm('-rf', `${deployPath}/core`);
 rm('-rf', `${deployPath}/adapters`);
 echo('building...');
 mkdir(deployPath)
+mkdir(`${deployPath}/scripts/`);
 cp(`${projectPath}/package.json`, `${deployPath}/package.json`);
+cp(`${projectPath}/scripts/patch-client-oauth2.js`, `${deployPath}/scripts/patch-client-oauth2.js`);
 cp(`${projectPath}/package-lock.json`, `${deployPath}/package-lock.json`);
 cp(`${projectPath}/src/index.js`, `${deployPath}/index.js`);
 cp(`${projectPath}/src/server-az.js`, `${deployPath}/server.js`);
