@@ -85,14 +85,35 @@ async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 10)
                 await newLock.delete();
             }
         }
-        // case: run withou token refresh lock
+        // case: run without token refresh lock
         else {
-            const token = oauthApp.createToken(user.accessToken, user.refreshToken);
-            const { accessToken, refreshToken, expires } = await token.refresh();
-            user.accessToken = accessToken;
-            user.refreshToken = refreshToken;
-            user.tokenExpiry = expires;
-            await user.save();
+            if (user.platform === 'gohighlevel') {
+                const params = new URLSearchParams();
+                params.append('client_id', process.env.GHL_CLIENT_ID);
+                params.append('client_secret', process.env.GHL_CLIENT_SECRET);
+                params.append('grant_type', 'refresh_token');
+                params.append('refresh_token', user.refreshToken);
+
+                const refreshTokenResponse = await axios.post(process.env.GHL_TOKEN_URI, params, {
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                });
+                const { access_token: accessToken, refresh_token: refreshToken, expires_in: expires } = refreshTokenResponse.data;
+                user.accessToken = accessToken;
+                user.refreshToken = refreshToken;
+                const date = new Date();
+                user.tokenExpiry = date.setSeconds(date.getSeconds() + expires);
+                await user.save();
+
+            } else {
+                const token = oauthApp.createToken(user.accessToken, user.refreshToken);
+                const { accessToken, refreshToken, expires } = await token.refresh();
+                user.accessToken = accessToken;
+                user.refreshToken = refreshToken;
+                user.tokenExpiry = expires;
+                await user.save();
+            }
         }
 
     }
