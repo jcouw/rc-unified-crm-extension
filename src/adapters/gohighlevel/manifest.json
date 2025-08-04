@@ -15,7 +15,6 @@
             "urlIdentifier": "app.gohighlevel.com",
             "name": "gohighlevel",
             "displayName": "GoHighLevel",
-            "enableExtensionNumberLoggingSetting": true,
             "requestConfig": {
                 "timeout": 30
             },

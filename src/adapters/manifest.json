@@ -2083,7 +2083,6 @@
             "urlIdentifier": "https://unified-crm-extension.labs.ringcentral.com/is-alive",
             "name": "gohighlevel",
             "displayName": "GoHighLevel",
-            "enableExtensionNumberLoggingSetting": true,
             "requestConfig": {
                 "timeout": 30
             },
