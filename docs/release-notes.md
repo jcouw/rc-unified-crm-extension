@@ -1,5 +1,48 @@
 # Release notes
 
+## 1.6.0:
+
+- New: User report tab to see calls and SMS messages made within selected date range
+- New: Clio option to see CLOSED matters (enable in User settings -> Clio options)
+- Fix: Pipedrive & Netsuite user session issue
+- Fix: Server side logging call duration stuck in 'pending' state
+
+## 1.5.8:
+
+- Fix: Error on showing a window-size warning message
+- Fix: Disconnected users shown as connected
+- Fix: Redtail disposition issue
+- Better: Every 5min, retroatively check recording links at pending state and update them to call logs
+- Better: More stable user session
+- Better: User settings sync message suppressed
+- Better: Webpage embed (Click-to-dial and Quick-access-button) urls setting is renamed to 'Enabled domains' under General -> Appearance
+
+## 1.5.7:
+
+- New: Bullhorn admin users can submit API username and password to avoid Bullhorn session expired in server side logging
+- New: Bullhorn server side logging supports to assign call notes to bullhorn user by RingCentral users' email mapping
+- Better: Message logs within the CRM are now consistently displayed in chronological order
+- Better: Added functionality to log Sales Orders and Opportunities in NetSuite with individual contacts in addition to customers.
+- Fix: wrong alert message when user click enter button in contact searching page
+- Fix: PipeDrive server side auto logging has 2 minutes delay
+
+## 1.5.6:
+
+- New: Users can now log messages in Google Sheets. A new sheet titled "Message Logs" will be created for that.
+- New: Ringtone can now be set up in Audio settings
+- Better: Improve user settings presentation
+- Fix: Bullhorn retroactive call log mistakenly putting 'pending note...' in Note Action
+- Fix: AI notes are now attached when doing retroactive call logging
+
+## 1.5.5:
+
+- New: Add Freskdesk and Gohighlevel 
+- New: Insightly has new setting in Insightly options to input custom phone field names
+- Better: Google Sheets users will get notified with clearer information to set up the sheet
+- Better: Click-to-dial enablement is now controled by user settings with 4 modes. (previous whitelist is deprecated)
+- Fix: Google Sheets issue on undefined values in fields
+- Fix: A bug on GoogleSheet getting call log if no note provide while editing call log
+
 ## 1.5.4
 
 - New: Clio now supports EU and CA

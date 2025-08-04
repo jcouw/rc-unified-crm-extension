@@ -78,6 +78,7 @@ nav:
    - 'Bullhorn': crm/bullhorn.md
    - 'Clio': crm/clio.md
    - 'Freshdesk': crm/freshdesk.md
+   - 'GoHighLevel': crm/gohighlevel.md
    - 'Google Sheets': crm/google-sheets.md
    - 'Insightly': crm/insightly.md
    - 'NetSuite': crm/netsuite.md
@@ -128,11 +129,12 @@ nav:
       - 'Contact matching': developers/contact-matching.md
       - 'Logging phone calls': developers/logging-calls.md
       - 'Logging SMS': developers/logging-sms.md
+      - 'CallLogComposer': developers/call-log-composer.md
       - 'Placeholder contacts': developers/placeholder-contacts.md
       - 'Viewing contacts and activities': developers/view-details.md
       - 'Welcome pages': developers/welcome-page.md
       - 'Returning errors': developers/errors.md
-      - 'Building your own server': developers/advanced/openapi.md
+#      - 'Building your own server': developers/advanced/openapi.md
     - 'Interfaces':
       - 'Overview': developers/interfaces/index.md
       - 'createCallLog': developers/interfaces/createCallLog.md
@@ -140,8 +142,10 @@ nav:
       - 'createContact': developers/interfaces/createContact.md
       - 'getAuthType': developers/interfaces/getAuthType.md
       - 'getCallLog': developers/interfaces/getCallLog.md
-      - 'findContact': developers/interfaces/findContact.md
+      - 'findContact (by phone)': developers/interfaces/findContact.md
+      - 'findContactWithName': developers/interfaces/findContactWithName.md
       - 'getOauthInfo': developers/interfaces/getOauthInfo.md
+      - 'checkAndRefreshAccessToken': developers/interfaces/checkAndRefreshAccessToken.md
       - 'getUserInfo': developers/interfaces/getUserInfo.md
       - 'unAuthorize': developers/interfaces/unAuthorize.md
       - 'updateCallLog': developers/interfaces/updateCallLog.md
