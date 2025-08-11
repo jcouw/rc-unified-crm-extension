@@ -1,7 +1,7 @@
 const axios = require('axios');
 const moment = require('moment');
 const { parsePhoneNumber } = require('awesome-phonenumber');
-const { secondsToHoursMinutesSeconds } = require('../../lib/util');
+const { secondsToHoursMinutesSeconds } = require('../../../packages/core/lib/util');
 const { cat } = require('shelljs');
 const DEFAULT_RETRY_DELAY = 2000;
 

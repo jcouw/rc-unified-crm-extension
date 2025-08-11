@@ -13,6 +13,8 @@ const insightly = require('./adapters/insightly');
 const netsuite = require('./adapters/netsuite');
 const pipedrive = require('./adapters/pipedrive');
 const redtail = require('./adapters/redtail');
+const freshdesk = require('./adapters/freshdesk');
+const gohighlevel = require('./adapters/gohighlevel');
 const testCRM = require('./adapters/testCRM');
 const googleSheetsExtra = require('./adapters/googleSheets/extra.js');
 
@@ -27,6 +29,8 @@ adapterRegistry.registerAdapter('insightly', insightly);
 adapterRegistry.registerAdapter('netsuite', netsuite);
 adapterRegistry.registerAdapter('pipedrive', pipedrive);
 adapterRegistry.registerAdapter('redtail', redtail);
+adapterRegistry.registerAdapter('freshdesk', freshdesk, require('./adapters/freshdesk/manifest.json'));
+adapterRegistry.registerAdapter('gohighlevel', gohighlevel, require('./adapters/gohighlevel/manifest.json'));
 adapterRegistry.registerAdapter('testCRM', testCRM, require('./adapters/testCRM/manifest.json'));
 
 // Create Express app with core functionality

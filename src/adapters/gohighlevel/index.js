@@ -1,7 +1,7 @@
 const axios = require('axios');
 const moment = require('moment');
 const { parsePhoneNumber } = require('awesome-phonenumber');
-const { secondsToHoursMinutesSeconds } = require('../../lib/util');
+const { secondsToHoursMinutesSeconds } = require('../../../packages/core/lib/util');
 const ClientOAuth2 = require('client-oauth2');
 const { cat } = require('shelljs');
 
@@ -245,7 +245,8 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
 
         const callLogNoteResponse = await createGHLNote(authHeader, noteBody, user.id, contactInfo.id);
         return {
-            logId: contactInfo.id + '-' + callLogNoteResponse.note.id,
+            // logId: contactInfo.id + '-' + callLogNoteResponse.note.id,
+            logId: callLogNoteResponse.note.id,
             returnMessage: {
                 message: 'Call logged',
                 messageType: 'success',
@@ -257,18 +258,19 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
     }
 }
 
-async function getCallLog({ user, callLogId, authHeader }) {
+async function getCallLog({ user, callLogId, contactId, authHeader }) {
     console.log('[RC App] getCallLog', callLogId);
 
     try {
-        let splitted = callLogId.split('-');
-        let contactId = null;
-        let callLogNoteId = null;
-        if (splitted.length > 1) {
-            contactId = splitted[0];
-            callLogNoteId = splitted[1];
-            console.log('[RC App] getCallLog got ids', contactId, callLogNoteId);
-        }
+        let callLogNoteId = callLogId;
+        // let callLogNoteId = null;
+        // let splitted = callLogId.split('-');
+        // let contactId = null;
+        // if (splitted.length > 1) {
+        //     contactId = splitted[0];
+        //     callLogNoteId = splitted[1];
+        //     console.log('[RC App] getCallLog got ids', contactId, callLogNoteId);
+        // }
 
         let getLogRes = {};
         if (contactId) {
@@ -312,14 +314,16 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
     console.log('[RC App] updateCallLog', note ? 'hasnote' : 'no note');
 
     try {
-        let splitted = existingCallLog.thirdPartyLogId.split('-');
-        let contactId = null;
-        let callLogNoteId = null;
-        if (splitted.length > 1) {
-            contactId = splitted[0];
-            callLogNoteId = splitted[1];
-            console.log('[RC App] updateCallLog got ids', contactId, callLogNoteId);
-        }
+        let callLogNoteId = existingCallLog.thirdPartyLogId;
+        let contactId = existingCallLog.contactId;
+        // let splitted = existingCallLog.thirdPartyLogId.split('-');
+        // let contactId = null;
+        // let callLogNoteId = null;
+        // if (splitted.length > 1) {
+        //     contactId = splitted[0];
+        //     callLogNoteId = splitted[1];
+        //     console.log('[RC App] updateCallLog got ids', contactId, callLogNoteId);
+        // }
 
         let noteResp = null
         noteResp = await getGHLNote(authHeader, contactId, callLogNoteId);

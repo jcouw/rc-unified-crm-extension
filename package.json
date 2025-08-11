@@ -26,7 +26,8 @@
     "deploy-test": "node ./scripts/serverless-deploy-test",
     "dynamo-local": "node ./scripts/dynamo-local.js",
     "htt": "node ./tests/highTrafficTestRun.js",
-    "update-version": "node ./scripts/updateVersion.js"
+    "update-version": "node ./scripts/updateVersion.js",
+    "postinstall": "node ./scripts/patch-client-oauth2.js"
   },
   "repository": {
     "type": "git",
