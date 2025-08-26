@@ -1,0 +1,21 @@
+diff --git a/node_modules/client-oauth2/src/client-oauth2.js b/node_modules/client-oauth2/src/client-oauth2.js
+index 7f1fe93..e60efab 100644
+--- a/node_modules/client-oauth2/src/client-oauth2.js
++++ b/node_modules/client-oauth2/src/client-oauth2.js
+@@ -633,10 +633,12 @@ CodeFlow.prototype.getToken = function (uri, opts) {
+   var headers = Object.assign({}, DEFAULT_HEADERS)
+   var body = { code: data.code, grant_type: 'authorization_code', redirect_uri: options.redirectUri }
+ 
+-  // `client_id`: REQUIRED, if the client is not authenticating with the
+-  // authorization server as described in Section 3.2.1.
+-  // Reference: https://tools.ietf.org/html/rfc6749#section-3.2.1
+-  if (options.clientSecret) {
++  // BEGIN ADDED PATCH SPECIFIC JS
++  if(options.useBodyAuth) {        
++    body.client_id = options.clientId
++    body.client_secret = options.clientSecret
++  } // END PATCH SPECIFIC JS
++    else if (options.clientSecret) {
+     headers.Authorization = auth(options.clientId, options.clientSecret)
+   } else {
+     body.client_id = options.clientId
