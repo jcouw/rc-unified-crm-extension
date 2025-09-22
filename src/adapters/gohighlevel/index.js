@@ -1,9 +1,10 @@
 const axios = require('axios');
 const moment = require('moment');
 const { parsePhoneNumber } = require('awesome-phonenumber');
-const { secondsToHoursMinutesSeconds } = require('../../../packages/core/lib/util');
+const { secondsToHoursMinutesSeconds } = require('@app-connect/core/lib/util');
 const ClientOAuth2 = require('client-oauth2');
 const { cat } = require('shelljs');
+const { UserModel } = require('@app-connect/core/models/userModel');
 
 
 // -----------------------------------------------------------------------------------------------
@@ -204,6 +205,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
 async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript }) {
     console.log('[RC App] createCallLog', contactInfo?.id);
 
+    // even though RC provide the getLicenseStatus interface, we still check here because we want to  display a clear notification
     try {
         console.debug('[RC App] START logActivity');
         await logActivity(user);
@@ -361,6 +363,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
 async function createMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, faxDocLink }) {
     console.log('[RC App] createMessageLog');
 
+    // even though RC provide the getLicenseStatus interface, we still check here because we want to  display a clear notification
     try {
         console.debug('[RC App] START logActivity');
         await logActivity(user);
@@ -475,6 +478,30 @@ async function upsertCallDisposition({ user, existingCallLog, authHeader, dispos
         logId: logId
     }
 }
+
+async function getLicenseStatus({ userId }) {
+    let result = {
+        isLicenseValid: true,
+        licenseStatus: 'Basic',
+        licenseStatusDescription: null
+    }
+
+    // to do: continue work on this as soon as RC provides a user input param because we need the user.platformAdditionalInfo.ghl_locationId
+    const user = await UserModel.findByPk(userId);
+
+    try {
+        await logActivity(user);
+    } catch (error) {
+        console.error("[RC App] getLicenseStatus error:", error);
+
+        result.isLicenseValid = false;
+        result.licenseStatus = 'Invalid';
+        result.licenseStatusDescription = error.message;
+    }
+
+    return result;
+}
+
 
 //#region Helper functions
 // The RC interface functions can handle errors but we need to return it in the response
@@ -863,26 +890,23 @@ function getLogActivityUrl(crmProduct, phoneProduct, userID, domain, version) {
 }
 
 // please note that GHL does not work on subdomains so we check based on the locationId related to the GHL sub-account
-function logActivity(user) {
+async function logActivity(user) {
     let result = null;
     const crmProduct = "GoHighLevel";
     const telephonyPlatform = "RingcentralAppConnect";
     const currentVersion = "1.0.0";
     const url = getLogActivityUrl(crmProduct, telephonyPlatform, user.id, user.platformAdditionalInfo.ghl_locationId, currentVersion);
 
-    return axios.post(url, user, { headers: { "Content-Type": "application/json; charset=utf-8" }, cache: false })
-        .then(() => {
-            console.log("[RC App] LogActivity Ok.");
-        })
-        .catch(error => {
-            if (error.response && error.response.status === 409) {
-                console.warn("[RC App] Not whitelisted for usage!");
-                throw new Error("Unauthorized use of GoHighLevel connector. Contact info@loyally.eu for support.");
-            }
-
-            throw error; // Ensure other errors are also propagated
-        });
-
+    try {
+        await axios.post(url, user, { headers: { "Content-Type": "application/json; charset=utf-8" }, cache: false });
+        console.log("[RC App] LogActivity Ok.");
+    } catch (error) {
+        if (error.response && error.response.status === 409) {
+            console.warn("[RC App] Not whitelisted for usage!");
+            throw new Error("Unauthorized use please contact info@loyally.eu. Subscribe [here](https://buy.stripe.com/9B614n1OBgat8d701LdUY0X) and leave your account info [here](https://loyally.eu/ringcentral-app-connect-setup)");
+        }
+        throw error; // Ensure other errors are also propagated
+    }
 }
 //#endregion
 
@@ -898,4 +922,5 @@ exports.findContact = findContact;
 exports.createContact = createContact;
 exports.unAuthorize = unAuthorize;
 exports.getOverridingOAuthOption = getOverridingOAuthOption;
-exports.upsertCallDisposition = upsertCallDisposition
+exports.upsertCallDisposition = upsertCallDisposition;
+exports.getLicenseStatus = getLicenseStatus;

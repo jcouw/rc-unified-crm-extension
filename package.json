@@ -28,7 +28,7 @@
     "dynamo-admin": "dynamodb-admin --port 8001",
     "htt": "node ./tests/highTrafficTestRun.js",
     "update-version": "node ./scripts/updateVersion.js",
-    "postinstall": "node ./scripts/patch-client-oauth2.js"
+    "postinstall": "patch-package"
   },
   "repository": {
     "type": "git",
@@ -68,6 +68,8 @@
     "ngrok": "^5.0.0-beta.2",
     "nock": "^13.2.9",
     "nodemon": "^3.1.3",
+    "patch-package": "^8.0.0",
+    "postinstall-postinstall": "^2.1.0",
     "serverless": "^3.23.0",
     "serverless-deployment-bucket": "^1.6.0",
     "serverless-plugin-log-retention": "^2.0.0",

@@ -2115,11 +2115,11 @@
       "documentationUrl": "https://ringcentral.github.io/rc-unified-crm-extension",
       "releaseNotesUrl": "https://ringcentral.github.io/rc-unified-crm-extension/release-notes/",
       "getSupportUrl": "https://community.ringcentral.com/topic/new?fid=22",
-      "writeReviewUrl": "https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh/reviews",
-      "urlIdentifier": "app.gohighlevel.com",
+      "urlIdentifier": "*",
+      "embedUrls": "*",
       "name": "gohighlevel",
       "displayName": "GoHighLevel",
-      "enableExtensionNumberLoggingSetting": true,
+      "useLicense": true,
       "requestConfig": {
         "timeout": 30
       },
@@ -2132,6 +2132,12 @@
           "customState": "",
           "scope": "scope=contacts.write conversations.write contacts.readonly conversations.readonly conversations/message.readonly conversations/message.write users.readonly"
         }
+      },
+      "serverSideLogging": {
+        "url": "https://crm-logging.labs.ringcentral.com",
+        "rcClientId": "Y4m1YREFKbXdDoet5djv46",
+        "useAdminAssignedUserToken": false,
+        "additionalFields": []
       },
       "canOpenLogPage": false,
       "contactPageUrl": "https://{hostname}/v2/location/{contactType}/contacts/detail/{contactId}",
@@ -2194,6 +2200,24 @@
               "type": "boolean",
               "name": "Add recording link to call log",
               "defaultValue": true
+            },
+            {
+              "id": "addCallLogAiNote",
+              "type": "boolean",
+              "name": "Smart summary",
+              "defaultValue": false
+            },
+            {
+              "id": "addCallLogTranscript",
+              "type": "boolean",
+              "name": "Call transcript",
+              "defaultValue": false
+            },
+            {
+              "id": "addCallLogLegs",
+              "type": "boolean",
+              "name": "Call journey",
+              "defaultValue": false
             }
           ]
         }
@@ -2210,25 +2234,6 @@
         {
           "id": "departmentName",
           "path": "cachedData.extensionInfo.contact.department"
-        }
-      ],
-      "override": [
-        {
-          "triggerType": "meta",
-          "overrideObjects": [
-            {
-              "path": "serverUrl",
-              "value": "https://ghl-rc-appconnect.loyally.nl"
-            },
-            {
-              "path": "author.name",
-              "value": "Loyally"
-            },
-            {
-              "path": "author.websiteUrl",
-              "value": "https://loyally.eu"
-            }
-          ]
         }
       ]
     },

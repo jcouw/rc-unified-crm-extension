@@ -12,19 +12,20 @@ rm('-rf', `${deployPath}/node_modules`);
 rm('-rf', `${deployPath}/lib`);
 rm('-rf', `${deployPath}/core`);
 rm('-rf', `${deployPath}/adapters`);
+rm('-rf', `${deployPath}/packages`);
 echo('building...');
 mkdir(deployPath)
 mkdir(`${deployPath}/scripts/`);
 cp(`${projectPath}/package.json`, `${deployPath}/package.json`);
-cp(`${projectPath}/scripts/patch-client-oauth2.js`, `${deployPath}/scripts/patch-client-oauth2.js`);
+cp(`${projectPath}/scripts/postinstall-fix-core.js`, `${deployPath}/scripts/postinstall-fix-core.js`);
 cp(`${projectPath}/package-lock.json`, `${deployPath}/package-lock.json`);
 cp(`${projectPath}/src/index.js`, `${deployPath}/index.js`);
 cp(`${projectPath}/src/server-az.js`, `${deployPath}/server.js`);
 cp(`${projectPath}/src/dbAccessor.js`, `${deployPath}/dbAccessor.js`);
+mkdir(`${deployPath}/packages`);
+cp('-r', `${projectPath}/packages/core`, `${deployPath}/packages/core`);
 cp(`${projectPath}/src/releaseNotes.json`, `${deployPath}/releaseNotes.json`);
-cp('-r', `${projectPath}/src/core`, `${deployPath}/core`);
 cp('-r', `${projectPath}/src/lib`, `${deployPath}/lib`);
 cp('-r', `${projectPath}/src/adapters`, `${deployPath}/adapters`);
-cp('-r', `${projectPath}/src/models`, `${deployPath}/models`);
 
 echo(`build done, output in ${deployPath}`);
