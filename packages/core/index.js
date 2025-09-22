@@ -125,9 +125,9 @@ function createCoreRouter() {
         let success = false;
         let extraData = {};
         const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
-        try{
+        try {
             const jwtToken = req.query.jwtToken;
-            if(jwtToken){
+            if (jwtToken) {
                 const { id: userId, platform } = jwt.decodeJwt(jwtToken);
                 platformName = platform;
                 if (!userId) {
@@ -138,7 +138,7 @@ function createCoreRouter() {
                 res.status(200).send(licenseStatus);
                 success = true;
             }
-            else{
+            else {
                 res.status(200).send({
                     isLicenseValid: false,
                     licenseStatus: 'Invalid (Invalid user session)',
@@ -147,7 +147,7 @@ function createCoreRouter() {
                 success = true;
             }
         }
-        catch(e){
+        catch (e) {
             res.status(200).send({
                 isLicenseValid: false,
                 licenseStatus: 'Invalid (Connect to get license status)',
@@ -331,6 +331,58 @@ function createCoreRouter() {
         });
     });
 
+    router.post('/admin/userMapping', async function (req, res) {
+        const requestStartTime = new Date().getTime();
+        let platformName = null;
+        let success = false;
+        const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+        try {
+            const jwtToken = req.query.jwtToken;
+            if (jwtToken) {
+                const unAuthData = jwt.decodeJwt(jwtToken);
+                platformName = unAuthData?.platform ?? 'Unknown';
+                const user = await UserModel.findByPk(unAuthData?.id);
+                if (!user) {
+                    res.status(400).send('User not found');
+                    return;
+                }
+                const { isValidated, rcAccountId } = await adminCore.validateAdminRole({ rcAccessToken: req.query.rcAccessToken });
+                const hashedRcAccountId = util.getHashValue(rcAccountId, process.env.HASH_KEY);
+                if (isValidated) {
+                    const userMapping = await adminCore.getUserMapping({ user, hashedRcAccountId, rcExtensionList: req.body.rcExtensionList });
+                    res.status(200).send(userMapping);
+                    success = true;
+                }
+                else {
+                    res.status(401).send('Admin validation failed');
+                    success = true;
+                }
+            }
+            else {
+                res.status(400).send('Please go to Settings and authorize CRM platform');
+                success = false;
+            }
+        }
+        catch (e) {
+            console.log(`${e.stack}`);
+            res.status(400).send(e);
+        }
+        const requestEndTime = new Date().getTime();
+        analytics.track({
+            eventName: 'Get user mapping',
+            interfaceName: 'getUserMapping',
+            adapterName: platformName,
+            accountId: hashedAccountId,
+            extensionId: hashedExtensionId,
+            success,
+            requestDuration: (requestEndTime - requestStartTime) / 1000,
+            userAgent,
+            ip,
+            author,
+            eventAddedVia
+        });
+    });
+
     router.get('/admin/serverLoggingSettings', async function (req, res) {
         const requestStartTime = new Date().getTime();
         let platformName = null;
@@ -403,13 +455,13 @@ function createCoreRouter() {
                 res.status(400).send('User not found');
                 return;
             }
-            const serverLoggingSettings = await adminCore.updateServerLoggingSettings({ user, additionalFieldValues: req.body.additionalFieldValues });
-            res.status(200).send(serverLoggingSettings);
+            const { successful, returnMessage } = await adminCore.updateServerLoggingSettings({ user, additionalFieldValues: req.body.additionalFieldValues });
+            res.status(200).send({ successful, returnMessage });
             success = true;
         }
         catch (e) {
             console.log(`${e.stack}`);
-            res.status(400).send(e);
+            res.status(400).send({ successful: false, returnMessage: { messageType: 'warning', message: 'Server logging settings update failed', ttl: 5000 } });
             success = false;
         }
         const requestEndTime = new Date().getTime();
@@ -841,6 +893,45 @@ function createCoreRouter() {
             eventAddedVia
         });
     });
+    router.post('/callLog/cacheNote', async function (req, res) {
+        const requestStartTime = new Date().getTime();
+        let platformName = null;
+        let success = false;
+        let extraData = {};
+        const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+        try {
+            const jwtToken = req.query.jwtToken;
+            if (jwtToken) {
+                const decodedToken = jwt.decodeJwt(jwtToken);
+                if (!decodedToken) {
+                    res.status(400).send('Please go to Settings and authorize CRM platform');
+                    return;
+                }
+                const { id: userId, platform } = decodedToken;
+                platformName = platform;
+                const { successful, returnMessage, extraDataTracking } = await logCore.saveNoteCache({ sessionId: req.body.sessionId, note: req.body.note });
+                res.status(200).send({ successful, returnMessage });
+                success = true;
+                if (extraDataTracking) {
+                    extraData = extraDataTracking;
+                }
+            }
+        } catch (e) {
+            console.log(`platform: ${platformName} \n${e.stack}`);
+            extraData.statusCode = e.response?.status ?? 'unknown';
+            res.status(400).send(e);
+            success = false;
+        }
+        const requestEndTime = new Date().getTime();
+        analytics.track({
+            eventName: 'Save note cache',
+            interfaceName: 'saveNoteCache',
+            adapterName: platformName,
+            accountId: hashedAccountId,
+            extensionId: hashedExtensionId,
+            success,
+        });
+    })
     router.get('/callLog', async function (req, res) {
         const requestStartTime = new Date().getTime();
         let platformName = null;
@@ -909,7 +1000,7 @@ function createCoreRouter() {
                 }
                 const { id: userId, platform } = decodedToken;
                 platformName = platform;
-                const { successful, logId, returnMessage, extraDataTracking } = await logCore.createCallLog({ platform, userId, incomingData: req.body });
+                const { successful, logId, returnMessage, extraDataTracking } = await logCore.createCallLog({ platform, userId, incomingData: req.body, hashedAccountId: hashedAccountId ?? util.getHashValue(req.body.logInfo?.accountId, process.env.HASH_KEY), isFromSSCL: userAgent === 'SSCL'});
                 if (extraDataTracking) {
                     extraData = extraDataTracking;
                 }
@@ -961,7 +1052,7 @@ function createCoreRouter() {
                 }
                 const { id: userId, platform } = decodedToken;
                 platformName = platform;
-                const { successful, logId, updatedNote, returnMessage, extraDataTracking } = await logCore.updateCallLog({ platform, userId, incomingData: req.body });
+                const { successful, logId, updatedNote, returnMessage, extraDataTracking } = await logCore.updateCallLog({ platform, userId, incomingData: req.body, hashedAccountId: hashedAccountId ?? util.getHashValue(req.body.accountId, process.env.HASH_KEY), isFromSSCL: userAgent === 'SSCL' });
                 if (extraDataTracking) {
                     extraData = extraDataTracking;
                 }
@@ -1240,6 +1331,10 @@ async function initializeCore(options = {}) {
 function createCoreApp(options = {}) {
     initializeCore(options);
     const app = express();
+
+    // Allow bigger POST body size
+    app.use(express.json({ limit: '50mb' }));
+    app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
     // Apply core middleware
     const coreMiddleware = createCoreMiddleware();

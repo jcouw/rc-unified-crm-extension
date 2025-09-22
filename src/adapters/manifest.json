@@ -20,12 +20,12 @@
       ],
       "serverSideLogging": {
         "url": "https://crm-logging.labs.ringcentral.com",
-        "rcClientId": "Y4m1YREFKbXdDoet5djv46",
         "useAdminAssignedUserToken": false
       },
       "displayName": "Pipedrive",
       "auth": {
         "type": "oauth",
+        "useTokenRefreshLock": true,
         "oauth": {
           "authUrl": "https://oauth.pipedrive.com/oauth/authorize",
           "clientId": "5d4736e322561f57",
@@ -35,88 +35,7 @@
       "canOpenLogPage": false,
       "contactPageUrl": "https://{hostname}/person/{contactId}",
       "logPageUrl": "https://{hostname}/activities/{logId}",
-      "settings": [
-        {
-          "id": "pipedriveCallLogDetails",
-          "type": "section",
-          "name": "Call log details",
-          "group": "logging",
-          "items": [
-            {
-              "id": "addCallLogNote",
-              "type": "boolean",
-              "name": "Agent-entered notes",
-              "description": "Log the notes manually entered by yourself",
-              "defaultValue": true
-            },
-            {
-              "id": "addCallSessionId",
-              "type": "boolean",
-              "name": "Call session id",
-              "description": "Log RingCentral call session id",
-              "defaultValue": false
-            },
-            {
-              "id": "addCallLogSubject",
-              "type": "boolean",
-              "name": "Call subject",
-              "description": "Log a short phrase to summarize call, e.g. 'Inbound call from...'",
-              "defaultValue": true
-            },
-            {
-              "id": "addCallLogContactNumber",
-              "type": "boolean",
-              "name": "Contact's phone number",
-              "description": "Log the contact information of the other participant",
-              "defaultValue": true
-            },
-            {
-              "id": "addCallLogDateTime",
-              "type": "boolean",
-              "name": "Date and time",
-              "description": "Log the call's explicit start and end date/times",
-              "defaultValue": true
-            },
-            {
-              "id": "addCallLogDuration",
-              "type": "boolean",
-              "name": "Call duration",
-              "description": "Log the call duration, noted in minutes and seconds",
-              "defaultValue": true
-            },
-            {
-              "id": "addCallLogResult",
-              "type": "boolean",
-              "name": "Call result",
-              "description": "Log the result of the call, e.g. Call connected",
-              "defaultValue": true
-            },
-            {
-              "id": "addCallLogRecording",
-              "type": "boolean",
-              "name": "Link to the recording",
-              "description": "Provide a link to the call's recording, if it exists",
-              "defaultValue": true
-            },
-            {
-              "id": "addCallLogAiNote",
-              "type": "boolean",
-              "name": "Smart summary",
-              "description": "Log the AI-generated summary of the call, if it exists",
-              "defaultValue": false,
-              "requiredPermission": "aiNote"
-            },
-            {
-              "id": "addCallLogTranscript",
-              "type": "boolean",
-              "name": "Call transcript",
-              "description": "Log the AI-generated transcript of the call, if it exists",
-              "defaultValue": false,
-              "requiredPermission": "aiNote"
-            }
-          ]
-        }
-      ],
+      "settings": [],
       "page": {
         "callLog": {
           "additionalFields": [
@@ -257,8 +176,7 @@
       ],
       "serverSideLogging": {
         "url": "https://crm-logging.labs.ringcentral.com",
-        "rcClientId": "Y4m1YREFKbXdDoet5djv46",
-        "useAdminAssignedUserToken": false
+        "useAdminAssignedUserToken": true
       },
       "displayName": "Insightly",
       "auth": {
@@ -332,72 +250,6 @@
               "name": "Extra phone field name for lead",
               "description": "The name of the extra phone field to search for leads in Insightly. Separate multiple fields with comma.",
               "defaultValue": ""
-            }
-          ]
-        },
-        {
-          "id": "insightlyCallLogDetails",
-          "type": "section",
-          "name": "Call log details",
-          "group": "logging",
-          "items": [
-            {
-              "id": "addCallLogNote",
-              "type": "boolean",
-              "name": "Agent-entered notes",
-              "description": "Log the notes manually entered by yourself",
-              "defaultValue": true
-            },
-            {
-              "id": "addCallSessionId",
-              "type": "boolean",
-              "name": "Call session id",
-              "description": "Log RingCentral call session id",
-              "defaultValue": false
-            },
-            {
-              "id": "addCallLogContactNumber",
-              "type": "boolean",
-              "name": "Contact's phone number",
-              "description": "Log the contact information of the other participant",
-              "defaultValue": true
-            },
-            {
-              "id": "addCallLogDuration",
-              "type": "boolean",
-              "name": "Call duration",
-              "description": "Log the call duration, noted in minutes and seconds",
-              "defaultValue": true
-            },
-            {
-              "id": "addCallLogResult",
-              "type": "boolean",
-              "name": "Call result",
-              "description": "Log the result of the call, e.g. Call connected",
-              "defaultValue": true
-            },
-            {
-              "id": "addCallLogRecording",
-              "type": "boolean",
-              "name": "Link to the recording",
-              "description": "Provide a link to the call's recording, if it exists",
-              "defaultValue": true
-            },
-            {
-              "id": "addCallLogAiNote",
-              "type": "boolean",
-              "name": "Smart summary",
-              "description": "Log the AI-generated summary of the call, if it exists",
-              "defaultValue": false,
-              "requiredPermission": "aiNote"
-            },
-            {
-              "id": "addCallLogTranscript",
-              "type": "boolean",
-              "name": "Call transcript",
-              "description": "Log the AI-generated transcript of the call, if it exists",
-              "defaultValue": false,
-              "requiredPermission": "aiNote"
             }
           ]
         }
@@ -542,8 +394,7 @@
       ],
       "serverSideLogging": {
         "url": "https://crm-logging.labs.ringcentral.com",
-        "rcClientId": "Y4m1YREFKbXdDoet5djv46",
-        "useAdminAssignedUserToken": false
+        "useAdminAssignedUserToken": true
       },
       "displayName": "Clio",
       "auth": {
@@ -576,72 +427,6 @@
               "name": "See closed matters",
               "description": "Show closed matters in the matter selection dropdown",
               "defaultValue": false
-            }
-          ]
-        },
-        {
-          "id": "clioCallLogDetails",
-          "type": "section",
-          "name": "Call log details",
-          "group": "logging",
-          "items": [
-            {
-              "id": "addCallLogNote",
-              "type": "boolean",
-              "name": "Agent-entered notes",
-              "description": "Log the notes manually entered by yourself",
-              "defaultValue": true
-            },
-            {
-              "id": "addCallSessionId",
-              "type": "boolean",
-              "name": "Call session id",
-              "description": "Log RingCentral call session id",
-              "defaultValue": false
-            },
-            {
-              "id": "addCallLogContactNumber",
-              "type": "boolean",
-              "name": "Contact's phone number",
-              "description": "Log the contact information of the other participant",
-              "defaultValue": true
-            },
-            {
-              "id": "addCallLogDuration",
-              "type": "boolean",
-              "name": "Call duration",
-              "description": "Log the call duration, noted in minutes and seconds",
-              "defaultValue": true
-            },
-            {
-              "id": "addCallLogResult",
-              "type": "boolean",
-              "name": "Call result",
-              "description": "Log the result of the call, e.g. Call connected",
-              "defaultValue": true
-            },
-            {
-              "id": "addCallLogRecording",
-              "type": "boolean",
-              "name": "Link to the recording",
-              "description": "Provide a link to the call's recording, if it exists",
-              "defaultValue": true
-            },
-            {
-              "id": "addCallLogAiNote",
-              "type": "boolean",
-              "name": "Smart summary",
-              "description": "Log the AI-generated summary of the call, if it exists",
-              "defaultValue": false,
-              "requiredPermission": "aiNote"
-            },
-            {
-              "id": "addCallLogTranscript",
-              "type": "boolean",
-              "name": "Call transcript",
-              "description": "Log the AI-generated transcript of the call, if it exists",
-              "defaultValue": false,
-              "requiredPermission": "aiNote"
             }
           ]
         }
@@ -821,8 +606,7 @@
       ],
       "serverSideLogging": {
         "url": "https://crm-logging.labs.ringcentral.com",
-        "rcClientId": "Y4m1YREFKbXdDoet5djv46",
-        "useAdminAssignedUserToken": false
+        "useAdminAssignedUserToken": true
       },
       "auth": {
         "type": "apiKey",
@@ -1043,86 +827,6 @@
               ]
             }
           ]
-        },
-        {
-          "id": "redtailCallLogDetails",
-          "type": "section",
-          "name": "Call log details",
-          "group": "logging",
-          "items": [
-            {
-              "id": "addCallLogNote",
-              "type": "boolean",
-              "name": "Agent-entered notes",
-              "description": "Log the notes manually entered by yourself",
-              "defaultValue": true
-            },
-            {
-              "id": "addCallSessionId",
-              "type": "boolean",
-              "name": "Call session id",
-              "description": "Log RingCentral call session id",
-              "defaultValue": false
-            },
-            {
-              "id": "addCallLogSubject",
-              "type": "boolean",
-              "name": "Call subject",
-              "description": "Log a short phrase to summarize call, e.g. 'Inbound call from...'",
-              "defaultValue": true
-            },
-            {
-              "id": "addCallLogContactNumber",
-              "type": "boolean",
-              "name": "Contact's phone number",
-              "description": "Log the contact information of the other participant",
-              "defaultValue": true
-            },
-            {
-              "id": "addCallLogDateTime",
-              "type": "boolean",
-              "name": "Date and time",
-              "description": "Log the call's explicit start and end date/times",
-              "defaultValue": true
-            },
-            {
-              "id": "addCallLogDuration",
-              "type": "boolean",
-              "name": "Call duration",
-              "description": "Log the call duration, noted in minutes and seconds",
-              "defaultValue": true
-            },
-            {
-              "id": "addCallLogResult",
-              "type": "boolean",
-              "name": "Call result",
-              "description": "Log the result of the call, e.g. Call connected",
-              "defaultValue": true
-            },
-            {
-              "id": "addCallLogRecording",
-              "type": "boolean",
-              "name": "Link to the recording",
-              "description": "Provide a link to the call's recording, if it exists",
-              "defaultValue": true
-            },
-            {
-              "id": "addCallLogAiNote",
-              "type": "boolean",
-              "name": "Smart summary",
-              "description": "Log the AI-generated summary of the call, if it exists",
-              "defaultValue": false,
-              "requiredPermission": "aiNote"
-            },
-            {
-              "id": "addCallLogTranscript",
-              "type": "boolean",
-              "name": "Call transcript",
-              "description": "Log the AI-generated transcript of the call, if it exists",
-              "defaultValue": false,
-              "requiredPermission": "aiNote"
-            }
-          ]
         }
       ],
       "page": {
@@ -1266,7 +970,6 @@
       ],
       "serverSideLogging": {
         "url": "https://crm-logging.labs.ringcentral.com",
-        "rcClientId": "Y4m1YREFKbXdDoet5djv46",
         "useAdminAssignedUserToken": true,
         "additionalFields": [
           {
@@ -1285,7 +988,7 @@
           {
             "const": "apiPasswordHelpText",
             "title": "Help",
-            "description": "To enable server-side logging, enter the **Bullhorn API username and password** for the account used to log calls. [Learn more](https://ringcentral.github.io/rc-unified-crm-extension/crm/bullhorn/#bullhorn-and-server-side-call-logging).",
+            "description": "To enable server-side logging, enter the **Bullhorn API username and password** for the account used to log calls. Warning: API user will override current admin role in Bullhorn actions. [Learn more](https://ringcentral.github.io/rc-unified-crm-extension/crm/bullhorn/#bullhorn-and-server-side-call-logging).",
             "type": "string",
             "uiSchema": {
               "ui:field": "admonition",
@@ -1370,86 +1073,6 @@
               "type": "boolean",
               "name": "Allow custom note action",
               "defaultValue": false
-            }
-          ]
-        },
-        {
-          "id": "bullhornCallLogDetails",
-          "type": "section",
-          "name": "Call log details",
-          "group": "logging",
-          "items": [
-            {
-              "id": "addCallLogNote",
-              "type": "boolean",
-              "name": "Agent-entered notes",
-              "description": "Log the notes manually entered by yourself",
-              "defaultValue": true
-            },
-            {
-              "id": "addCallSessionId",
-              "type": "boolean",
-              "name": "Call session id",
-              "description": "Log RingCentral call session id",
-              "defaultValue": false
-            },
-            {
-              "id": "addCallLogSubject",
-              "type": "boolean",
-              "name": "Call subject",
-              "description": "Log a short phrase to summarize call, e.g. 'Inbound call from...'",
-              "defaultValue": true
-            },
-            {
-              "id": "addCallLogContactNumber",
-              "type": "boolean",
-              "name": "Contact's phone number",
-              "description": "Log the contact information of the other participant",
-              "defaultValue": true
-            },
-            {
-              "id": "addCallLogDateTime",
-              "type": "boolean",
-              "name": "Date and time",
-              "description": "Log the call's explicit start and end date/times",
-              "defaultValue": true
-            },
-            {
-              "id": "addCallLogDuration",
-              "type": "boolean",
-              "name": "Call duration",
-              "description": "Log the call duration, noted in minutes and seconds",
-              "defaultValue": true
-            },
-            {
-              "id": "addCallLogResult",
-              "type": "boolean",
-              "name": "Call result",
-              "description": "Log the result of the call, e.g. Call connected",
-              "defaultValue": true
-            },
-            {
-              "id": "addCallLogRecording",
-              "type": "boolean",
-              "name": "Link to the recording",
-              "description": "Provide a link to the call's recording, if it exists",
-              "defaultValue": true
-            },
-            {
-              "id": "addCallLogAiNote",
-              "type": "boolean",
-              "name": "Smart summary",
-              "description": "Log the AI-generated summary of the call, if it exists",
-              "defaultValue": false,
-              "requiredPermission": "aiNote"
-            },
-            {
-              "id": "addCallLogTranscript",
-              "type": "boolean",
-              "name": "Call transcript",
-              "description": "Log the AI-generated transcript of the call, if it exists",
-              "defaultValue": false,
-              "requiredPermission": "aiNote"
             }
           ]
         }
@@ -1604,7 +1227,6 @@
       ],
       "serverSideLogging": {
         "url": "https://crm-logging.labs.ringcentral.com",
-        "rcClientId": "Y4m1YREFKbXdDoet5djv46",
         "useAdminAssignedUserToken": false
       },
       "displayName": "NetSuite",
@@ -1698,86 +1320,6 @@
               "name": "Opportunity logging",
               "description": "When enabled, calls can be optionally associated with opportunities",
               "defaultValue": false
-            }
-          ]
-        },
-        {
-          "id": "netsuiteCallLogDetails",
-          "type": "section",
-          "name": "Call log details",
-          "group": "logging",
-          "items": [
-            {
-              "id": "addCallLogNote",
-              "type": "boolean",
-              "name": "Agent-entered notes",
-              "description": "Log the notes manually entered by yourself",
-              "defaultValue": true
-            },
-            {
-              "id": "addCallSessionId",
-              "type": "boolean",
-              "name": "Call session id",
-              "description": "Log RingCentral call session id",
-              "defaultValue": false
-            },
-            {
-              "id": "addCallLogSubject",
-              "type": "boolean",
-              "name": "Call subject",
-              "description": "Log a short phrase to summarize call, e.g. 'Inbound call from...'",
-              "defaultValue": true
-            },
-            {
-              "id": "addCallLogContactNumber",
-              "type": "boolean",
-              "name": "Contact's phone number",
-              "description": "Log the contact information of the other participant",
-              "defaultValue": true
-            },
-            {
-              "id": "addCallLogDateTime",
-              "type": "boolean",
-              "name": "Date and time",
-              "description": "Log the call's explicit start and end date/times",
-              "defaultValue": true
-            },
-            {
-              "id": "addCallLogDuration",
-              "type": "boolean",
-              "name": "Call duration",
-              "description": "Log the call duration, noted in minutes and seconds",
-              "defaultValue": true
-            },
-            {
-              "id": "addCallLogResult",
-              "type": "boolean",
-              "name": "Call result",
-              "description": "Log the result of the call, e.g. Call connected",
-              "defaultValue": true
-            },
-            {
-              "id": "addCallLogRecording",
-              "type": "boolean",
-              "name": "Link to the recording",
-              "description": "Provide a link to the call's recording, if it exists",
-              "defaultValue": true
-            },
-            {
-              "id": "addCallLogAiNote",
-              "type": "boolean",
-              "name": "Smart summary",
-              "description": "Log the AI-generated summary of the call, if it exists",
-              "defaultValue": true,
-              "requiredPermission": "aiNote"
-            },
-            {
-              "id": "addCallLogTranscript",
-              "type": "boolean",
-              "name": "Call transcript",
-              "description": "Log the AI-generated transcript of the call, if it exists",
-              "defaultValue": true,
-              "requiredPermission": "aiNote"
             }
           ]
         }
@@ -1924,7 +1466,6 @@
       ],
       "serverSideLogging": {
         "url": "https://crm-logging.labs.ringcentral.com",
-        "rcClientId": "Y4m1YREFKbXdDoet5djv46",
         "useAdminAssignedUserToken": false
       },
       "displayName": "Google Sheets (Beta)",
@@ -1947,88 +1488,7 @@
           "videoLink": "https://youtu.be/pQgdsAR1UCI"
         }
       },
-      "settings": [
-        {
-          "id": "googleSheetsCallLogDetails",
-          "type": "section",
-          "name": "Call log details",
-          "group": "logging",
-          "items": [
-            {
-              "id": "addCallLogNote",
-              "type": "boolean",
-              "name": "Agent-entered notes",
-              "description": "Log the notes manually entered by yourself",
-              "defaultValue": true
-            },
-            {
-              "id": "addCallSessionId",
-              "type": "boolean",
-              "name": "Call session id",
-              "description": "Log RingCentral call session id",
-              "defaultValue": false
-            },
-            {
-              "id": "addCallLogSubject",
-              "type": "boolean",
-              "name": "Call subject",
-              "description": "Log a short phrase to summarize call, e.g. 'Inbound call from...'",
-              "defaultValue": true
-            },
-            {
-              "id": "addCallLogContactNumber",
-              "type": "boolean",
-              "name": "Contact's phone number",
-              "description": "Log the contact information of the other participant",
-              "defaultValue": true
-            },
-            {
-              "id": "addCallLogDateTime",
-              "type": "boolean",
-              "name": "Date and time",
-              "description": "Log the call's explicit start and end date/times",
-              "defaultValue": true
-            },
-            {
-              "id": "addCallLogDuration",
-              "type": "boolean",
-              "name": "Call duration",
-              "description": "Log the call duration, noted in minutes and seconds",
-              "defaultValue": true
-            },
-            {
-              "id": "addCallLogResult",
-              "type": "boolean",
-              "name": "Call result",
-              "description": "Log the result of the call, e.g. Call connected",
-              "defaultValue": true
-            },
-            {
-              "id": "addCallLogRecording",
-              "type": "boolean",
-              "name": "Link to the recording",
-              "description": "Provide a link to the call's recording, if it exists",
-              "defaultValue": true
-            },
-            {
-              "id": "addCallLogAiNote",
-              "type": "boolean",
-              "name": "Smart summary",
-              "description": "Log the AI-generated summary of the call, if it exists",
-              "defaultValue": false,
-              "requiredPermission": "aiNote"
-            },
-            {
-              "id": "addCallLogTranscript",
-              "type": "boolean",
-              "name": "Call transcript",
-              "description": "Log the AI-generated transcript of the call, if it exists",
-              "defaultValue": false,
-              "requiredPermission": "aiNote"
-            }
-          ]
-        }
-      ],
+      "settings": [],
       "page": {
         "callLog": {
           "additionalFields": []
@@ -2293,81 +1753,7 @@
           "videoLink": "https://youtu.be/pQgdsAR1UCI"
         }
       },
-      "settings": [
-        {
-          "id": "freshdeskCallLogDetails",
-          "type": "section",
-          "name": "Call log details",
-          "group": "logging",
-          "items": [
-            {
-              "id": "addCallLogNote",
-              "type": "boolean",
-              "name": "Agent-entered notes",
-              "description": "Log the notes manually entered by yourself",
-              "defaultValue": true
-            },
-            {
-              "id": "addCallLogSubject",
-              "type": "boolean",
-              "name": "Call subject",
-              "description": "Log a short phrase to summarize call, e.g. 'Inbound call from...'",
-              "defaultValue": true
-            },
-            {
-              "id": "addCallLogContactNumber",
-              "type": "boolean",
-              "name": "Contact's phone number",
-              "description": "Log the contact information of the other participant",
-              "defaultValue": true
-            },
-            {
-              "id": "addCallLogDateTime",
-              "type": "boolean",
-              "name": "Date and time",
-              "description": "Log the call's explicit start and end date/times",
-              "defaultValue": true
-            },
-            {
-              "id": "addCallLogDuration",
-              "type": "boolean",
-              "name": "Call duration",
-              "description": "Log the call duration, noted in minutes and seconds",
-              "defaultValue": true
-            },
-            {
-              "id": "addCallLogResult",
-              "type": "boolean",
-              "name": "Call result",
-              "description": "Log the result of the call, e.g. Call connected",
-              "defaultValue": true
-            },
-            {
-              "id": "addCallLogRecording",
-              "type": "boolean",
-              "name": "Link to the recording",
-              "description": "Provide a link to the call's recording, if it exists",
-              "defaultValue": true
-            },
-            {
-              "id": "addCallLogAiNote",
-              "type": "boolean",
-              "name": "Smart summary",
-              "description": "Log the AI-generated summary of the call, if it exists",
-              "defaultValue": false,
-              "requiredPermission": "aiNote"
-            },
-            {
-              "id": "addCallLogTranscript",
-              "type": "boolean",
-              "name": "Call transcript",
-              "description": "Log the AI-generated transcript of the call, if it exists",
-              "defaultValue": false,
-              "requiredPermission": "aiNote"
-            }
-          ]
-        }
-      ],
+      "settings": [],
       "page": {
         "callLog": {
           "additionalFields": []
@@ -2403,5 +1789,5 @@
       ]
     }
   },
-  "version": "1.6.1"
+  "version": "1.6.5"
 }

@@ -1,6 +1,6 @@
 {
   "name": "rc-unified-crm-extension-server",
-  "version": "1.6.1",
+  "version": "1.6.5",
   "description": "RingCentral App Connect",
   "main": "index.js",
   "bin": {
@@ -27,7 +27,7 @@
     "dynamo-local": "node ./scripts/dynamo-local.js",
     "dynamo-admin": "dynamodb-admin --port 8001",
     "htt": "node ./tests/highTrafficTestRun.js",
-    "update-version": "node ./scripts/updateVersion.js",
+    "update": "node ./scripts/updateVersion.js",
     "postinstall": "patch-package"
   },
   "repository": {
@@ -44,7 +44,7 @@
   "license": "MIT",
   "dependencies": {
     "awesome-phonenumber": "^5.6.0",
-    "axios": "^1.1.2",
+    "axios": "^1.12.2",
     "dotenv": "^16.0.3",
     "express": "^4.21.2",
     "googleapis": "^148.0.0",
@@ -72,7 +72,7 @@
     "postinstall-postinstall": "^2.1.0",
     "serverless": "^3.23.0",
     "serverless-deployment-bucket": "^1.6.0",
-    "serverless-plugin-log-retention": "^2.0.0",
+    "serverless-plugin-log-retention": "^2.1.0",
     "shelljs": "^0.8.5",
     "simple-git": "^3.14.1",
     "sqlite3": "^5.1.5",
