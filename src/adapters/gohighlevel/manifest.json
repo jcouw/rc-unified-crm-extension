@@ -1,5 +1,5 @@
 {
-    "serverUrl": "http://localhost:6066",
+    "serverUrl": "https://4b6d3e596e8f.ngrok-free.app",
     "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html",
     "author": {
         "name": "Loyally",
@@ -30,7 +30,7 @@
                 }
             },
             "serverSideLogging": {
-                "url": "https://crm-logging.labs.ringcentral.com",
+                "url": "https://da-web-tunnel-7d0fe54e5f68.herokuapp.com",
                 "rcClientId": "Y4m1YREFKbXdDoet5djv46",
                 "useAdminAssignedUserToken": false,
                 "additionalFields": []
@@ -134,5 +134,5 @@
             ]
         }
     },
-    "version": "1.3.10"
+    "version": "1.6.5"
 }

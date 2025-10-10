@@ -42,12 +42,13 @@ async function createCallLog({ platform, userId, incomingData, hashedAccountId, 
         const callLog = incomingData.logInfo;
         const additionalSubmission = incomingData.additionalSubmission;
         let note = incomingData.note;
-        if (isFromSSCL) {
-            const noteCache = await NoteCache.get({ sessionId: incomingData.logInfo.sessionId });
-            if (noteCache) {
-                note = noteCache.note;
-            }
-        }
+        // [Loyally] Keep this commented even when merging commits. The below code break the SSCL flow on our Azure deployment
+        // if (isFromSSCL) {
+        //     const noteCache = await NoteCache.get({ sessionId: incomingData.logInfo.sessionId });
+        //     if (noteCache) {
+        //         note = noteCache.note;
+        //     }
+        // }
         const aiNote = incomingData.aiNote;
         const transcript = incomingData.transcript;
         const authType = platformModule.getAuthType();

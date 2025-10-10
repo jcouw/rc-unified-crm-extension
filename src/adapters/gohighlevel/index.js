@@ -39,6 +39,7 @@ exports.getOauthInfo = getOauthInfo;
 
 // CHOOSE: If using OAuth somehow uses query not body to pass code
 function getOverridingOAuthOption({ code }) {
+    console.log("[RC App] getOverridingOAuthOption");
     return {
         useBodyAuth: true
     }
@@ -69,6 +70,9 @@ async function getUserInfo({ authHeader, additionalInfo, data }) {
         const id = data.userId;
         const name = userResp.name ?? 'unknown user';
         const email = userResp.email;
+
+        console.log(`[RC App] getUserInfo going to return`);
+
         return {
             successful: true,
             platformUserInfo: {
@@ -85,6 +89,7 @@ async function getUserInfo({ authHeader, additionalInfo, data }) {
         };
     }
     catch (e) {
+        console.error("[RC App] getUserInfo error:", e);
         return {
             successful: false,
             returnMessage: {
@@ -109,6 +114,7 @@ async function getUserInfo({ authHeader, additionalInfo, data }) {
 }
 
 async function unAuthorize({ user }) {
+    console.log("[RC App] unAuthorize");
     await user.destroy();
     return {
         returnMessage: {
@@ -202,7 +208,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
 // - callLog: same as in https://developers.ringcentral.com/api-reference/Call-Log/readUserCallRecord
 // - note: note submitted by user
 // - additionalSubmission: all additional fields that are setup in manifest under call log page
-async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript }) {
+async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript, composedLogDetails }) {
     console.log('[RC App] createCallLog', contactInfo?.id);
 
     // even though RC provide the getLicenseStatus interface, we still check here because we want to  display a clear notification
@@ -235,7 +241,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         // Create a note in GHL for the call log + agent notes
         let subTitle = callLog.customSubject ?? `[Call] ${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name} [${contactInfo.phone}]`;
         let noteBody = upsertSubject({ body: '', subject: subTitle });
-        
+
         if (user.userSettings?.addCallLogContactNumber?.value ?? true) { noteBody = upsertContactPhoneNumber({ body: noteBody, phoneNumber: contactInfo.phoneNumber, direction: callLog.direction }); }
         if (user.userSettings?.addCallLogDateTime?.value ?? true) { noteBody = upsertCallDateTime({ body: noteBody, startTime: callLog.startTime, timezoneOffset: user.timezoneOffset }); }
         if (user.userSettings?.addCallLogDuration?.value ?? true) { noteBody = upsertCallDuration({ body: noteBody, duration: callLog.duration }); }
@@ -283,10 +289,10 @@ async function getCallLog({ user, callLogId, contactId, authHeader }) {
             // unfortunately GHL only has a note body so this is the only way
             const result = splitAtFirstNewline(noteResp.note.body);
             let note = '';
-            if(noteResp.note.body.indexOf('- Agent note: ') > -1) {
+            if (noteResp.note.body.indexOf('- Agent note: ') > -1) {
                 note = noteResp.note.body.split('- Agent note: ')[1];
             }
-            
+
             getLogRes = { subject: result.part1, note: note };
         }
 
@@ -471,6 +477,35 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
     }
 }
 
+async function getUserList({ user }) {
+    console.log('[RC App] getUserList');
+    return [{
+        id: "0Gi2VH40zirXNmaqxj5w",
+        name: "Jeroen Couwenberg",
+        email: "j.couwenberg+ghlsa-user@loyally.eu"
+    }];
+}
+
+async function getServerLoggingSettings({ userId }) {
+    console.log('[RC App] getServerLoggingSettings');
+    return {
+        apiUsername: "username",
+        apiPassword: "password",
+    };
+}
+
+async function updateServerLoggingSettings({ userId, settings }) {
+    console.log('[RC App] updateServerLoggingSettings');
+     return {
+        successful: true,
+        returnMessage: {
+            messageType: 'success',
+            message: 'Server logging settings updated',
+            ttl: 5000
+        },
+    };
+}
+
 // implemented this to prevent framework error: "platformModule.upsertCallDisposition is not a function"
 async function upsertCallDisposition({ user, existingCallLog, authHeader, dispositions }) {
     const logId = existingCallLog.thirdPartyLogId;
@@ -480,16 +515,16 @@ async function upsertCallDisposition({ user, existingCallLog, authHeader, dispos
 }
 
 async function getLicenseStatus({ userId }) {
+    console.log("[RC App] getLicenseStatus"); 
     let result = {
         isLicenseValid: true,
         licenseStatus: 'Basic',
         licenseStatusDescription: null
     }
 
-    // to do: continue work on this as soon as RC provides a user input param because we need the user.platformAdditionalInfo.ghl_locationId
-    const user = await UserModel.findByPk(userId);
-
     try {
+        // to do: continue work on this as soon as RC provides a user input param because we need the user.platformAdditionalInfo.ghl_locationId
+        const user = await UserModel.findByPk(userId);
         await logActivity(user);
     } catch (error) {
         console.error("[RC App] getLicenseStatus error:", error);
@@ -924,3 +959,6 @@ exports.unAuthorize = unAuthorize;
 exports.getOverridingOAuthOption = getOverridingOAuthOption;
 exports.upsertCallDisposition = upsertCallDisposition;
 exports.getLicenseStatus = getLicenseStatus;
+exports.getUserList = getUserList;
+exports.getServerLoggingSettings = getServerLoggingSettings;
+exports.updateServerLoggingSettings = updateServerLoggingSettings;
