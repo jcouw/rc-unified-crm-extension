@@ -365,6 +365,7 @@ async function updateCallLog({ platform, userId, incomingData, hashedAccountId, 
                 });
             }
 
+            console.log('[RC app] handlers log calling updateCallLog with recordingLink', incomingData.recordingLink, isFromSSCL);
             const { updatedNote, returnMessage, extraDataTracking } = await platformModule.updateCallLog({
                 user,
                 existingCallLog,

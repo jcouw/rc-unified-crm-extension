@@ -209,7 +209,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
 // - note: note submitted by user
 // - additionalSubmission: all additional fields that are setup in manifest under call log page
 async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript, composedLogDetails }) {
-    console.log('[RC App] createCallLog', contactInfo?.id);
+    console.log('[RC App] createCallLog', contactInfo?.id, composedLogDetails);
 
     // even though RC provide the getLicenseStatus interface, we still check here because we want to  display a clear notification
     try {
@@ -477,35 +477,6 @@ async function createContact({ user, authHeader, phoneNumber, newContactName, ne
     }
 }
 
-async function getUserList({ user }) {
-    console.log('[RC App] getUserList');
-    return [{
-        id: "0Gi2VH40zirXNmaqxj5w",
-        name: "Jeroen Couwenberg",
-        email: "j.couwenberg+ghlsa-user@loyally.eu"
-    }];
-}
-
-async function getServerLoggingSettings({ userId }) {
-    console.log('[RC App] getServerLoggingSettings');
-    return {
-        apiUsername: "username",
-        apiPassword: "password",
-    };
-}
-
-async function updateServerLoggingSettings({ userId, settings }) {
-    console.log('[RC App] updateServerLoggingSettings');
-     return {
-        successful: true,
-        returnMessage: {
-            messageType: 'success',
-            message: 'Server logging settings updated',
-            ttl: 5000
-        },
-    };
-}
-
 // implemented this to prevent framework error: "platformModule.upsertCallDisposition is not a function"
 async function upsertCallDisposition({ user, existingCallLog, authHeader, dispositions }) {
     const logId = existingCallLog.thirdPartyLogId;
@@ -515,7 +486,7 @@ async function upsertCallDisposition({ user, existingCallLog, authHeader, dispos
 }
 
 async function getLicenseStatus({ userId }) {
-    console.log("[RC App] getLicenseStatus"); 
+    console.log("[RC App] getLicenseStatus");
     let result = {
         isLicenseValid: true,
         licenseStatus: 'Basic',
@@ -605,9 +576,10 @@ function upsertCallAgentNote({ body, note }) {
     if (!!!note) {
         return body;
     }
+
     const noteRegex = RegExp('- Agent note: ([\\s\\S]*)');
     if (noteRegex.test(body)) {
-        body = body.replace(noteRegex, `- Agent note: ${note}\n`);
+        body = body.replace(noteRegex, `- Agent note: ${note}`);
     }
     else {
         body += `- Agent note: ${note}\n`;
@@ -926,6 +898,12 @@ function getLogActivityUrl(crmProduct, phoneProduct, userID, domain, version) {
 
 // please note that GHL does not work on subdomains so we check based on the locationId related to the GHL sub-account
 async function logActivity(user) {
+    if(!user || !user.platformAdditionalInfo || !user.platformAdditionalInfo.ghl_locationId) {
+        // it seems the initial getLicenseStatus() call that executes this function causes this sometimes
+        console.warn("[RC App] logActivity skipped, user or locationId missing", user);
+        return;
+    }
+    
     let result = null;
     const crmProduct = "GoHighLevel";
     const telephonyPlatform = "RingcentralAppConnect";
@@ -959,6 +937,3 @@ exports.unAuthorize = unAuthorize;
 exports.getOverridingOAuthOption = getOverridingOAuthOption;
 exports.upsertCallDisposition = upsertCallDisposition;
 exports.getLicenseStatus = getLicenseStatus;
-exports.getUserList = getUserList;
-exports.getServerLoggingSettings = getServerLoggingSettings;
-exports.updateServerLoggingSettings = updateServerLoggingSettings;
