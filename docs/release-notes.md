@@ -1,5 +1,33 @@
 # Release notes
 
+## 1.6.9
+
+- New: Server-side logging now supports multiple RingCentral users to be mapped under one CRM user
+- Fix: Google Sheets cannot select existing sheet
+- Fix: Server-side logging user mapping not working properly when running under multi-site scenarios
+
+## 1.6.8:
+
+- New: For Clio, Insightly and NetSuite, a new link on number formatter setting page to its working logic explanation in user guide  
+- Fix: Bullhorn server-side logging now returns warning message if api user password is wrong
+- Fix: Server-side logging, if it's created by one admin, the other admin will be able to see its status
+- Fix: Conference calls show wrong warning message
+
+## 1.6.7:
+
+- New: Clio now supports image/video media link in message logs
+- New: NetSuite salesOrder/opportunity association with native transaction field in phone call
+- New: NetSuite now supports Vendor as new contact type
+- Fix: Wrong default microphone device in some cases
+- Fix: Bullhorn user mapping now gets the full user list
+
+## 1.6.6:
+
+- New: Server-side call logging now supports user mapping configuration in the admin tab, allowing admin users to log calls on behalf of other users
+- Fix: Redtail now properly displays middle names
+- Fix: Server-side call logging now displays RingCentral user names in the correct order within log details
+- Fix: Server-side call logging now shows the correct RingCentral user name instead of displaying the Caller ID
+
 ## 1.6.5:
 
 - New: Support call journey in call logging details with server side logging

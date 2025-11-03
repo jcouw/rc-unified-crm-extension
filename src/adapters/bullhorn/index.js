@@ -11,6 +11,8 @@ const { encode, decoded } = require('@app-connect/core/lib/encode');
 const { UserModel } = require('@app-connect/core/models/userModel');
 const { AdminConfigModel } = require('@app-connect/core/models/adminConfigModel');
 const { Lock } = require('@app-connect/core/models/dynamo/lockSchema');
+const { upsertCallDuration, upsertCallResult, upsertCallRecording, upsertAiNote, upsertTranscript } = require('@app-connect/core/lib/callLogComposer');
+const { LOG_DETAILS_FORMAT_TYPE } = require('@app-connect/core/lib/constants');
 
 function getAuthType() {
     return 'oauth';
@@ -404,8 +406,8 @@ async function updateServerLoggingSettings({ user, additionalFieldValues, oauthA
             successful: false,
             returnMessage: {
                 messageType: 'warning',
-                message: 'Server logging settings update failed',
-                ttl: 5000
+                message: 'Server logging settings update failed. Please check your username and password.',
+                ttl: 10000
             },
         };
     }
@@ -1104,23 +1106,36 @@ async function getUserList({ user }) {
         fields: 'id,firstName,lastName,email',
         where: queryWhere
     });
-    const userInfoResponse = await axios.get(
-        `${user.platformAdditionalInfo.restUrl}query/CorporateUser?${searchParams.toString()}`,
-        {
-            headers: {
-                BhRestToken: user.platformAdditionalInfo.bhRestToken
+    let start = 0;
+    let userInfoResponse;
+    const userList = [];
+    // use max loop counter just in case while loop goes forever
+    const maxLoop = 500;
+    let loopCounter = 0;
+    do {
+        loopCounter++;
+        userInfoResponse = await axios.get(
+            `${user.platformAdditionalInfo.restUrl}query/CorporateUser?start=${start}&${searchParams.toString()}`,
+            {
+                headers: {
+                    BhRestToken: user.platformAdditionalInfo.bhRestToken
+                }
+            }
+        );
+        start = userInfoResponse?.data?.start + userInfoResponse?.data?.count;
+        if (userInfoResponse?.data?.data?.length > 0) {
+            for (const user of userInfoResponse.data.data) {
+                userList.push({
+                    id: user.id,
+                    name: `${user.firstName} ${user.lastName}`,
+                    email: user.email
+                });
             }
         }
-    );
-    const userList = [];
-    if (userInfoResponse?.data?.data?.length > 0) {
-        for (const user of userInfoResponse.data.data) {
-            userList.push({
-                id: user.id,
-                name: `${user.firstName} ${user.lastName}`,
-                email: user.email
-            });
-        }
+    }
+    while (userInfoResponse?.data?.data?.length > 0 && loopCounter < maxLoop);
+    if (loopCounter >= maxLoop) {
+        throw new Error('Bullhorn user list fetch over-limit');
     }
     return userList;
 }
@@ -1144,7 +1159,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
 
         if (!assigneeId) {
             const adminConfig = await AdminConfigModel.findByPk(hashedAccountId);
-            assigneeId = adminConfig.userMappings?.find(mapping => mapping.rcExtensionId === additionalSubmission.adminAssignedUserRcId)?.crmUserId;
+            assigneeId = adminConfig.userMappings?.find(mapping => typeof (mapping.rcExtensionId) === 'string' ? mapping.rcExtensionId == additionalSubmission.adminAssignedUserRcId : mapping.rcExtensionId.includes(additionalSubmission.adminAssignedUserRcId))?.crmUserId;
         }
     }
     const subject = callLog.customSubject ?? `${callLog.direction} Call ${callLog.direction === 'Outbound' ? `to ${contactInfo.name}` : `from ${contactInfo.name}`}`;
@@ -1255,7 +1270,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
     let assigneeId = null;
     if (additionalSubmission?.isAssignedToUser) {
         const adminConfig = await AdminConfigModel.findByPk(hashedAccountId);
-        assigneeId = adminConfig.userMappings?.find(mapping => mapping.rcExtensionId === additionalSubmission.adminAssignedUserRcId)?.crmUserId;
+        assigneeId = adminConfig.userMappings?.find(mapping => typeof (mapping.rcExtensionId) === 'string' ? mapping.rcExtensionId == additionalSubmission.adminAssignedUserRcId : mapping.rcExtensionId.includes(additionalSubmission.adminAssignedUserRcId))?.crmUserId;
     }
 
 
@@ -1273,6 +1288,15 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
     const ssclPendingNoteRegex = RegExp(`<br>From auto logging \\(Pending\\)<br>*`);
     if (!isFromSSCL || ssclPendingNoteRegex.test(existingCallLogDetails?.comments ?? getLogRes.data.data.comments)) {
         postBody.comments = composedLogDetails;
+    }
+    // Case: update log should be able to update fields other than agent notes
+    else{
+        postBody.comments = getLogRes.data.data.comments;
+        postBody.comments = upsertCallDuration({ body: postBody.comments, duration: duration, logFormat: LOG_DETAILS_FORMAT_TYPE.HTML });
+        postBody.comments = upsertCallResult({ body: postBody.comments, result: result, logFormat: LOG_DETAILS_FORMAT_TYPE.HTML });
+        postBody.comments = upsertCallRecording({ body: postBody.comments, recordingLink: recordingLink, logFormat: LOG_DETAILS_FORMAT_TYPE.HTML });
+        postBody.comments = upsertAiNote({ body: postBody.comments, aiNote: aiNote, logFormat: LOG_DETAILS_FORMAT_TYPE.HTML });
+        postBody.comments = upsertTranscript({ body: postBody.comments, transcript: transcript, logFormat: LOG_DETAILS_FORMAT_TYPE.HTML });
     }
     let patchLogRes;
     try {
