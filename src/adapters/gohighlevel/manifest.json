@@ -30,9 +30,9 @@
                 }
             },
             "serverSideLogging": {
-                "url": "https://da-web-tunnel-7d0fe54e5f68.herokuapp.com",
+                "url": "https://crm-logging.labs.ringcentral.com",
                 "rcClientId": "Y4m1YREFKbXdDoet5djv46",
-                "useAdminAssignedUserToken": false,
+                "useAdminAssignedUserToken": true,
                 "additionalFields": []
             },
             "canOpenLogPage": false,
