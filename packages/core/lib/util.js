@@ -37,6 +37,20 @@ function secondsToHoursMinutesSeconds(seconds) {
     return resultString;
 }
 
+function getMostRecentDate({ allDateValues }) {
+    var result = 0;
+    for (const date of allDateValues) {
+        if(!date)
+        {
+            continue;
+        }
+        if (date > result) {
+            result = date;
+        }
+    }
+    return result;
+}
+
 // media reader link: https://ringcentral.github.io/ringcentral-media-reader/?media=https://media.ringcentral.com/restapi/v1.0/account/{accountId}/extension/{extensionId}/message-store/{messageId}/content/{contentId}
 // platform media link: https://media.ringcentral.com/restapi/v1.0/account/{accountId}/extension/{extensionId}/message-store/{messageId}/content/{contentId}
 function getMediaReaderLinkByPlatformMediaLink(platformMediaLink){
@@ -50,4 +64,5 @@ function getMediaReaderLinkByPlatformMediaLink(platformMediaLink){
 exports.getTimeZone = getTimeZone;
 exports.getHashValue = getHashValue;
 exports.secondsToHoursMinutesSeconds = secondsToHoursMinutesSeconds;
+exports.getMostRecentDate = getMostRecentDate;
 exports.getMediaReaderLinkByPlatformMediaLink = getMediaReaderLinkByPlatformMediaLink;

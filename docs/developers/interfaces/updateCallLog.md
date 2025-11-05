@@ -26,12 +26,13 @@ The `updateCallLog` and `createCallLog` interfaces both receive the constituent 
 | `recordingLink`        | If the call has a recording associated with it, then this field will contain a link to the voicemail.    |
 | `subject`              | The subject or summary of the call activity. The value may have been changes by the user.                |
 | `note`                 | The notes saved by the user. The value may change if the user has updated the notes they have taken.     |
-| `startTime`            | Updated value of start date/time of this call. |
-| `duration`             | Updated value of duration of this call.     |
-| `result`               | Updated value of result of this call.     |
-| `aiNote`               | The AI-generated summary of the call. Transmitted only if Smart Notes has been enabled. |
-| `transcript`           | The AI-processed transcript of the call. Transmitted only if Smart Notes has been enabled. |
-| `additionalSubmission` | Additional information transmitted with the call, potentially containing user- or CRM-specific data.  |
+| `startTime`                 | Updated value of start date/time of this call. |
+| `duration`                 | Updated value of duration of this call.     |
+| `result`                 | Updated value of result of this call.     |
+| `aiNote`       |  AI summary of the phone call   | 
+| `transcript`       |  Transcript of the phone call   | 
+| `composedLogDetails`       |  Formated log details that can be directly put into log body  | 
+| `existingCallLogDetails`       |  Formated log details that's stored in log entity  | 
 
 * Why need `startTime`, `duration` and `result`? Call info could be not as accurate right after the call. Our app uses call info from user local data until it's updated by RingCentral server. If users create call logs before RingCentral server updates the data, another API call will be triggered to call this `updateCallLog` function with true call data.
 
@@ -72,12 +73,12 @@ An object with following properties:
 === "Example CRM"
 
     ```js
-    {!> src/adapters/testCRM/index.js [ln:328-371] !}
+    {!> packages/template/src/connectors/interfaces/updateCallLog.js !}
 	```
 	
 === "Pipedrive"
 
 	```js
-    {!> src/adapters/pipedrive/index.js [ln:352-397] !}
+    {!> src/connectors/pipedrive/index.js [ln:423-480] !}
 	```
 

@@ -1,4 +1,6 @@
-# Agent-level call statistics and reports
+# Report
+
+## Agent-level call statistics and reports
 
 The User Report feature provides valuable insights into your calling and messaging activity, helping you track your communication patterns and productivity within App Connect.
 
@@ -15,5 +17,19 @@ The **Reports** tab currently provides **basic agent-level call statistics**, in
 - **SMS Messages**: Track SMS messages sent within your chosen time period
 - **Date Range Selection**: Customize the reporting period to analyze specific timeframes
 
-!!! tip "Stay tuned for updates"
-    As we continue to enhance the User Report feature with organization-level statistics, you'll gain even more powerful insights into your team's overall communication performance.
+## Organization-level call statistics and reports
+
+<!-- md:version 1.7.0 -->
+
+!!! tip "Admin users only"
+    Only RingCentral account admins can view organization-level reports.
+
+With similar stats as agent-level reports provide, organization-level reports have:
+
+1. All users' individual reports
+2. Aggregated organization report
+
+<figure markdown>
+  ![Admin report](../img/admin-report.png){ .mw-400 }
+  <figcaption>Calling stats and metrics for the whole organization</figcaption>
+</figure>

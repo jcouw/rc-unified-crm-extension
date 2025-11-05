@@ -1,6 +1,6 @@
 # createCallLog
 
-This interface is responsible for creating a new call log record in the associated CRM. The call must be associated with the contact passed in as a request parameter. Other associations may be made depending upon the CRM and the adapter. 
+This interface is responsible for creating a new call log record in the associated CRM. The call must be associated with the contact passed in as a request parameter. Other associations may be made depending upon the CRM and the connector. 
 
 There is an underlying assumption of the framework that there is a one-to-one mapping between notes (or activities) and phone calls. Therefore, when logging a call in the target CRM only create a single log entry. 
 
@@ -19,9 +19,9 @@ The `updateCallLog` and `createCallLog` interfaces both receive the constituent 
 | `callLog`              | All the metadata associated with the call to be logged. [Call Log schema](https://developers.ringcentral.com/api-reference/Call-Log/readUserCallRecord) is described in our API Reference. |
 | `note`                 | The notes saved by the user during and/or after the call.                                                |
 | `additionalSubmission` | All of the additional custom fields defined in the manifest and submitted by the user.                   |
-| `aiNote`               | The AI-generated summary of the call. Transmitted only if Smart Notes has been enabled. |
-| `transcript`           | The AI-processed transcript of the call. Transmitted only if Smart Notes has been enabled. |
-| `timezoneOffset`       | The timezone offset of the current user in the event you need to use UTC when calling the CRM's API.     | 
+| `aiNote`       |  AI summary of the phone call   | 
+| `transcript`       |  Transcript of the phone call   | 
+| `composedLogDetails`       |  Formated log details that can be directly put into log body  | 
 
 ### Contact Info
 
@@ -60,13 +60,13 @@ An object with following properties:
 === "Example CRM"
 
     ```js
-    {!> src/adapters/testCRM/index.js [ln:230-272] !}
+    {!> packages/template/src/connectors/interfaces/createCallLog.js !}
 	```
 	
 === "Pipedrive"
 
 	```js
-    {!> src/adapters/pipedrive/index.js [ln:284-350] !}
+    {!> src/connectors/pipedrive/index.js [ln:342-421] !}
 	```
 
 ### Example Call Log Schema

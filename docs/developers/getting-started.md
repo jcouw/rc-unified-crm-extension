@@ -1,5 +1,7 @@
 # App Connect Connector developer quick start 
 
+<!-- md:version 1.7.0 -->
+
 {! docs/developers/beta_notice.inc !}
 
 Welcome to the App Connect developer quick start guide! This quick start guide will walk you through the essential steps for getting your first integration up and running with **App Connect**. By the end of this guide, you will have accomplished two main goals:
@@ -49,7 +51,5 @@ Let's try and see it everything works:
 ## Notes about the default mock server 
 
 * **The default auth type is API key, which is effectively ignored.** Because this is just a mock server that doesn't actually connect to a CRM, you are free to use any arbitrary string as an API key. 
-
-* **Contacts are transient in mock server mode.** In this mock server, contact info only exists with current server run. If server is re-started, mock contact info will be lost.
 
 

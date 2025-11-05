@@ -4,6 +4,8 @@ const bodyParser = require('body-parser');
 const dynamoose = require('dynamoose');
 const axios = require('axios');
 const { UserModel } = require('./models/userModel');
+const { CallDownListModel } = require('./models/callDownListModel');
+const { Op } = require('sequelize');
 const { CallLogModel } = require('./models/callLogModel');
 const { MessageLogModel } = require('./models/messageLogModel');
 const { AdminConfigModel } = require('./models/adminConfigModel');
@@ -15,11 +17,13 @@ const authCore = require('./handlers/auth');
 const adminCore = require('./handlers/admin');
 const userCore = require('./handlers/user');
 const dispositionCore = require('./handlers/disposition');
-const mock = require('./adapter/mock');
+const mock = require('./connector/mock');
+const proxyConnector = require('./connector/proxy');
 const releaseNotes = require('./releaseNotes.json');
 const analytics = require('./lib/analytics');
 const util = require('./lib/util');
-const adapterRegistry = require('./adapter/registry');
+const connectorRegistry = require('./connector/registry');
+const calldown = require('./handlers/calldown');
 
 let packageJson = null;
 try {
@@ -44,6 +48,7 @@ async function initDB() {
         await MessageLogModel.sync();
         await AdminConfigModel.sync();
         await CacheModel.sync();
+        await CallDownListModel.sync();
     }
 }
 
@@ -71,22 +76,23 @@ function createCoreRouter() {
     // Move all app.get, app.post, etc. to router.get, router.post, etc.
     router.get('/releaseNotes', async function (req, res) {
         const globalReleaseNotes = releaseNotes;
-        const adapterReleaseNotes = adapterRegistry.getReleaseNotes();
+        const connectorReleaseNotes = connectorRegistry.getReleaseNotes();
         const mergedReleaseNotes = {};
-        const versions = Object.keys(adapterReleaseNotes);
+        const versions = Object.keys(connectorReleaseNotes);
         for (const version of versions) {
             mergedReleaseNotes[version] = {
                 global: globalReleaseNotes[version]?.global ?? {},
-                ...adapterReleaseNotes[version] ?? {}
+                ...connectorReleaseNotes[version] ?? {}
             };
         }
         res.json(mergedReleaseNotes);
     });
 
+    // Obsolete
     router.get('/crmManifest', (req, res) => {
         try {
             const platformName = req.query.platformName || 'default';
-            const crmManifest = adapterRegistry.getManifest(platformName);
+            const crmManifest = connectorRegistry.getManifest(platformName);
             if (crmManifest) {
                 // Override app server url for local development
                 if (process.env.OVERRIDE_APP_SERVER) {
@@ -159,7 +165,7 @@ function createCoreRouter() {
         analytics.track({
             eventName: 'Check license status',
             interfaceName: 'checkLicenseStatus',
-            adapterName: platformName,
+            connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
             success,
@@ -214,7 +220,7 @@ function createCoreRouter() {
         analytics.track({
             eventName: 'Auth validation',
             interfaceName: 'authValidation',
-            adapterName: platformName,
+            connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
             success,
@@ -231,8 +237,9 @@ function createCoreRouter() {
         });
     });
 
+    // Obsolete
     router.get('/serverVersionInfo', (req, res) => {
-        const defaultCrmManifest = adapterRegistry.getManifest('default');
+        const defaultCrmManifest = connectorRegistry.getManifest('default');
         res.send({ version: defaultCrmManifest?.version ?? 'unknown' });
     });
 
@@ -296,7 +303,7 @@ function createCoreRouter() {
                     }
                     else {
                         res.status(200).send({
-                            customAdapter: null,
+                            customConnector: null,
                             userSettings: {}
                         });
                     }
@@ -319,7 +326,7 @@ function createCoreRouter() {
         analytics.track({
             eventName: 'Get admin settings',
             interfaceName: 'getAdminSettings',
-            adapterName: platformName,
+            connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
             success,
@@ -371,7 +378,7 @@ function createCoreRouter() {
         analytics.track({
             eventName: 'Get user mapping',
             interfaceName: 'getUserMapping',
-            adapterName: platformName,
+            connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
             success,
@@ -417,7 +424,7 @@ function createCoreRouter() {
         analytics.track({
             eventName: 'Get server logging settings',
             interfaceName: 'getServerLoggingSettings',
-            adapterName: platformName,
+            connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
             success,
@@ -468,7 +475,7 @@ function createCoreRouter() {
         analytics.track({
             eventName: 'Set server logging settings',
             interfaceName: 'setServerLoggingSettings',
-            adapterName: platformName,
+            connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
             success,
@@ -533,7 +540,7 @@ function createCoreRouter() {
         analytics.track({
             eventName: 'Get user settings',
             interfaceName: 'getUserSettings',
-            adapterName: platformName,
+            connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
             success,
@@ -578,7 +585,7 @@ function createCoreRouter() {
         analytics.track({
             eventName: 'Set user settings',
             interfaceName: 'setUserSettings',
-            adapterName: platformName,
+            connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
             success,
@@ -641,7 +648,8 @@ function createCoreRouter() {
                 callbackUri: req.query.callbackUri,
                 apiUrl: req.query.apiUrl,
                 username: req.query.username,
-                query: req.query
+                query: req.query,
+                proxyId: req.query.proxyId
             });
             if (userInfo) {
                 const jwtToken = jwt.generateJwt({
@@ -665,7 +673,7 @@ function createCoreRouter() {
         analytics.track({
             eventName: 'OAuth Callback',
             interfaceName: 'onOAuthCallback',
-            adapterName: platformName,
+            connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
             success,
@@ -686,6 +694,7 @@ function createCoreRouter() {
             platformName = platform;
             const apiKey = req.body.apiKey;
             const hostname = req.body.hostname;
+            const proxyId = req.body.proxyId;
             const additionalInfo = req.body.additionalInfo;
             if (!platform) {
                 throw 'Missing platform name';
@@ -693,7 +702,7 @@ function createCoreRouter() {
             if (!apiKey) {
                 throw 'Missing api key';
             }
-            const { userInfo, returnMessage } = await authCore.onApiKeyLogin({ platform, hostname, apiKey, additionalInfo });
+            const { userInfo, returnMessage } = await authCore.onApiKeyLogin({ platform, hostname, apiKey, proxyId, additionalInfo });
             if (userInfo) {
                 const jwtToken = jwt.generateJwt({
                     id: userInfo.id.toString(),
@@ -716,7 +725,7 @@ function createCoreRouter() {
         analytics.track({
             eventName: 'API Key Login',
             interfaceName: 'onApiKeyLogin',
-            adapterName: platformName,
+            connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
             success,
@@ -742,7 +751,7 @@ function createCoreRouter() {
                     res.status(400).send();
                     return;
                 }
-                const platformModule = adapterRegistry.getAdapter(unAuthData?.platform ?? 'Unknown');
+                const platformModule = connectorRegistry.getConnector(unAuthData?.platform ?? 'Unknown');
                 const { returnMessage } = await platformModule.unAuthorize({ user: userToLogout });
                 res.status(200).send({ returnMessage });
                 success = true;
@@ -761,7 +770,7 @@ function createCoreRouter() {
         analytics.track({
             eventName: 'Unauthorize',
             interfaceName: 'unAuthorize',
-            adapterName: platformName,
+            connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
             success,
@@ -826,7 +835,7 @@ function createCoreRouter() {
         analytics.track({
             eventName: 'Find contact',
             interfaceName: 'findContact',
-            adapterName: platformName,
+            connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
             success,
@@ -879,7 +888,7 @@ function createCoreRouter() {
         analytics.track({
             eventName: 'Create contact',
             interfaceName: 'createContact',
-            adapterName: platformName,
+            connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
             success,
@@ -926,7 +935,7 @@ function createCoreRouter() {
         analytics.track({
             eventName: 'Save note cache',
             interfaceName: 'saveNoteCache',
-            adapterName: platformName,
+            connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
             success,
@@ -970,7 +979,7 @@ function createCoreRouter() {
         analytics.track({
             eventName: 'Get call log',
             interfaceName: 'getCallLog',
-            adapterName: platformName,
+            connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
             success,
@@ -1000,7 +1009,7 @@ function createCoreRouter() {
                 }
                 const { id: userId, platform } = decodedToken;
                 platformName = platform;
-                const { successful, logId, returnMessage, extraDataTracking } = await logCore.createCallLog({ platform, userId, incomingData: req.body, hashedAccountId: hashedAccountId ?? util.getHashValue(req.body.logInfo?.accountId, process.env.HASH_KEY), isFromSSCL: userAgent === 'SSCL'});
+                const { successful, logId, returnMessage, extraDataTracking } = await logCore.createCallLog({ platform, userId, incomingData: req.body, hashedAccountId: hashedAccountId ?? util.getHashValue(req.body.logInfo?.accountId, process.env.HASH_KEY), isFromSSCL: userAgent === 'SSCL' });
                 if (extraDataTracking) {
                     extraData = extraDataTracking;
                 }
@@ -1022,7 +1031,7 @@ function createCoreRouter() {
         analytics.track({
             eventName: 'Create call log',
             interfaceName: 'createCallLog',
-            adapterName: platformName,
+            connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
             success,
@@ -1074,7 +1083,7 @@ function createCoreRouter() {
         analytics.track({
             eventName: 'Update call log',
             interfaceName: 'updateCallLog',
-            adapterName: platformName,
+            connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
             success,
@@ -1130,7 +1139,7 @@ function createCoreRouter() {
         analytics.track({
             eventName: 'Create call log',
             interfaceName: 'createCallLog',
-            adapterName: platformName,
+            connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
             success,
@@ -1183,7 +1192,7 @@ function createCoreRouter() {
         analytics.track({
             eventName: 'Create message log',
             interfaceName: 'createMessageLog',
-            adapterName: platformName,
+            connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
             success,
@@ -1195,6 +1204,174 @@ function createCoreRouter() {
                 statusCode,
                 ...extraData
             },
+            eventAddedVia
+        });
+    });
+
+    router.post('/calldown', async function (req, res) {
+        const requestStartTime = new Date().getTime();
+        let platformName = null;
+        let success = false;
+        let statusCode = 200;
+        const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+        try {
+            const jwtToken = req.query.jwtToken;
+            if (!jwtToken) {
+                res.status(400).send('Please go to Settings and authorize CRM platform');
+                return;
+            }
+            const { id } = await calldown.schedule({ jwtToken, rcAccessToken: req.query.rcAccessToken, body: req.body });
+            success = true;
+            res.status(200).send({ successful: true, id });
+        } catch (e) {
+            console.log(`platform: ${platformName} \n${e.stack}`);
+            statusCode = e.response?.status ?? 'unknown';
+            res.status(400).send(e);
+            success = false;
+        }
+        const requestEndTime = new Date().getTime();
+        analytics.track({
+            eventName: 'Schedule call down',
+            interfaceName: 'scheduleCallDown',
+            connectorName: platformName,
+            accountId: hashedAccountId,
+            extensionId: hashedExtensionId,
+            success,
+            requestDuration: (requestEndTime - requestStartTime) / 1000,
+            userAgent,
+            ip,
+            author,
+            extras: {
+                statusCode
+            },
+            eventAddedVia
+        });
+    });
+
+
+    router.get('/calldown', async function (req, res) {
+        const requestStartTime = new Date().getTime();
+        let platformName = null;
+        let success = false;
+        let statusCode = 200;
+        const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+        try {
+            const jwtToken = req.query.jwtToken;
+            if (!jwtToken) {
+                res.status(400).send('Please go to Settings and authorize CRM platform');
+                return;
+            }
+            const { items } = await calldown.list({ jwtToken, status: req.query.status });
+            success = true;
+            res.status(200).send({ successful: true, items });
+        } catch (e) {
+            console.log(`platform: ${platformName} \n${e.stack}`);
+            statusCode = e.response?.status ?? 'unknown';
+            res.status(400).send(e);
+            success = false;
+        }
+        const requestEndTime = new Date().getTime();
+        analytics.track({
+            eventName: 'Get call down list',
+            interfaceName: 'getCallDownList',
+            connectorName: platformName,
+            accountId: hashedAccountId,
+            extensionId: hashedExtensionId,
+            success,
+            requestDuration: (requestEndTime - requestStartTime) / 1000,
+            userAgent,
+            ip,
+            author,
+            extras: { statusCode },
+            eventAddedVia
+        });
+    });
+
+
+    router.delete('/calldown/:id', async function (req, res) {
+        const requestStartTime = new Date().getTime();
+        let platformName = null;
+        let success = false;
+        let statusCode = 200;
+        const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+        try {
+            const jwtToken = req.query.jwtToken;
+            const id = req.query.id;
+            if (!jwtToken) {
+                res.status(400).send('Please go to Settings and authorize CRM platform');
+                return;
+            }
+            const rid = req.params.id || id;
+            if (!rid) {
+                res.status(400).send('Missing id');
+                return;
+            }
+            await calldown.remove({ jwtToken, id: rid });
+            success = true;
+            res.status(200).send({ successful: true });
+        } catch (e) {
+            console.log(`platform: ${platformName} \n${e.stack}`);
+            statusCode = e.response?.status ?? 'unknown';
+            res.status(400).send(e);
+            success = false;
+        }
+        const requestEndTime = new Date().getTime();
+        analytics.track({
+            eventName: 'Delete call down item',
+            interfaceName: 'deleteCallDownItem',
+            connectorName: platformName,
+            accountId: hashedAccountId,
+            extensionId: hashedExtensionId,
+            success,
+            requestDuration: (requestEndTime - requestStartTime) / 1000,
+            userAgent,
+            ip,
+            author,
+            extras: { statusCode },
+            eventAddedVia
+        });
+    });
+
+
+    router.patch('/calldown/:id', async function (req, res) {
+        const requestStartTime = new Date().getTime();
+        let platformName = null;
+        let success = false;
+        let statusCode = 200;
+        const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+        try {
+            const jwtToken = req.query.jwtToken;
+            if (!jwtToken) {
+                res.status(400).send('Please go to Settings and authorize CRM platform');
+                return;
+            }
+            const id = req.params.id || req.body?.id;
+            if (!id) {
+                res.status(400).send('Missing id');
+                return;
+            }
+            await calldown.markCalled({ jwtToken, id, lastCallAt: req.body?.lastCallAt });
+            success = true;
+            res.status(200).send({ successful: true });
+        } catch (e) {
+            console.log(`platform: ${platformName} \n${e.stack}`);
+            statusCode = e.response?.status ?? 'unknown';
+            res.status(400).send(e);
+            success = false;
+        }
+        const requestEndTime = new Date().getTime();
+        analytics.track({
+            eventName: 'Mark call down called',
+            interfaceName: 'markCallDownCalled',
+            connectorName: platformName,
+            accountId: hashedAccountId,
+            extensionId: hashedExtensionId,
+            success,
+            requestDuration: (requestEndTime - requestStartTime) / 1000,
+            userAgent,
+            ip,
+            author,
+            extras: { statusCode },
             eventAddedVia
         });
     });
@@ -1231,7 +1408,7 @@ function createCoreRouter() {
         analytics.track({
             eventName: 'Contact Search by Name',
             interfaceName: 'contactSearchByName',
-            adapterName: platformName,
+            connectorName: platformName,
             accountId: hashedAccountId,
             extensionId: hashedExtensionId,
             success,
@@ -1243,8 +1420,108 @@ function createCoreRouter() {
                 statusCode
             }
         });
-
     });
+
+    router.get('/ringcentral/admin/report', async function (req, res) {
+        const requestStartTime = new Date().getTime();
+        let platformName = null;
+        let success = false;
+        const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+        const jwtToken = req.query.jwtToken;
+        try {
+            if (jwtToken) {
+                const unAuthData = jwt.decodeJwt(jwtToken);
+                const user = await UserModel.findByPk(unAuthData?.id);
+                if (!user) {
+                    res.status(400).send('User not found');
+                    return;
+                }
+                const report = await adminCore.getAdminReport({ rcAccountId: user.rcAccountId, timezone: req.query.timezone, timeFrom: req.query.timeFrom, timeTo: req.query.timeTo });
+                res.status(200).send(report);
+                success = true;
+                return;
+            }
+            res.status(400).send('Invalid request');
+            success = false;
+        }
+        catch (e) {
+            console.log(`${e.stack}`);
+            res.status(400).send(e);
+        }
+        const requestEndTime = new Date().getTime();
+        analytics.track({
+            eventName: 'Get admin report',
+            interfaceName: 'getAdminReport',
+            connectorName: platformName,
+            accountId: hashedAccountId,
+            extensionId: hashedExtensionId,
+            success,
+            requestDuration: (requestEndTime - requestStartTime) / 1000,
+            userAgent,
+            ip,
+            author,
+            eventAddedVia
+        });
+    });
+
+    router.get('/ringcentral/admin/userReport', async function (req, res) {
+        const requestStartTime = new Date().getTime();
+        let platformName = null;
+        let success = false;
+        const { hashedExtensionId, hashedAccountId, userAgent, ip, author, eventAddedVia } = getAnalyticsVariablesInReqHeaders({ headers: req.headers })
+        const jwtToken = req.query.jwtToken;
+        try {
+            if (jwtToken) {
+                const unAuthData = jwt.decodeJwt(jwtToken);
+                const user = await UserModel.findByPk(unAuthData?.id);
+                if (!user) {
+                    res.status(400).send('User not found');
+                    return;
+                }
+                const report = await adminCore.getUserReport({ rcAccountId: user.rcAccountId, rcExtensionId: req.query.rcExtensionId, timezone: req.query.timezone, timeFrom: req.query.timeFrom, timeTo: req.query.timeTo });
+                res.status(200).send(report);
+                return;
+            }
+            res.status(400).send('Invalid request');
+            success = false;
+        }
+        catch (e) {
+            console.log(`${e.stack}`);
+            res.status(400).send(e);
+        }
+        const requestEndTime = new Date().getTime();
+        analytics.track({
+            eventName: 'Get user report',
+            interfaceName: 'getUserReport',
+            connectorName: platformName,
+            accountId: hashedAccountId,
+            extensionId: hashedExtensionId,
+            success,
+            requestDuration: (requestEndTime - requestStartTime) / 1000,
+            userAgent,
+            ip,
+            author,
+            eventAddedVia
+        });
+    });
+
+    router.get('/ringcentral/oauth/callback', async function (req, res) {
+        const jwtToken = req.query.jwtToken;
+        if (jwtToken) {
+            const unAuthData = jwt.decodeJwt(jwtToken);
+            const { code } = req.query;
+            const user = await UserModel.findByPk(unAuthData?.id);
+            if (!user) {
+                res.status(400).send('User not found');
+                return;
+            }
+            await authCore.onRingcentralOAuthCallback({ code, rcAccountId: user.rcAccountId });
+            res.status(200).send('OK');
+            return;
+        }
+        res.status(400).send('Invalid request');
+    });
+
     if (process.env.IS_PROD === 'false') {
         router.post('/registerMockUser', async function (req, res) {
             const secretKey = req.query.secretKey;
@@ -1306,7 +1583,7 @@ function createCoreMiddleware() {
     return [
         bodyParser.json(),
         cors({
-            methods: ['GET', 'POST', 'PATCH', 'PUT']
+            methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE']
         })
     ];
 }
@@ -1351,4 +1628,5 @@ exports.createCoreRouter = createCoreRouter;
 exports.createCoreMiddleware = createCoreMiddleware;
 exports.createCoreApp = createCoreApp;
 exports.initializeCore = initializeCore;
-exports.adapterRegistry = adapterRegistry;
+exports.connectorRegistry = connectorRegistry;
+exports.proxyConnector = proxyConnector;

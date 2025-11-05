@@ -1,11 +1,11 @@
 const moment = require('moment-timezone');
 const { secondsToHoursMinutesSeconds } = require('./util');
-const adapterRegistry = require('../adapter/registry');
+const connectorRegistry = require('../connector/registry');
 const { LOG_DETAILS_FORMAT_TYPE } = require('./constants');
 
 /**
  * Centralized call log composition module
- * Supports both plain text and HTML formats used across different CRM adapters
+ * Supports both plain text and HTML formats used across different CRM connectors
  */
 
 /**
@@ -615,20 +615,8 @@ function upsertLegs({ body, legs, logFormat }) {
     return result;
 }
 
-/**
- * Helper function to determine format type for a CRM platform
- * @param {string} platform - CRM platform name
- * @returns {string} Format type
- */
-function getLogFormatType(platform) {
-    const manifest = adapterRegistry.getManifest(platform, true);
-    const platformConfig = manifest.platforms?.[platform];
-    return platformConfig?.logFormat;
-}
-
 module.exports = {
     composeCallLog,
-    getLogFormatType,
     // Export individual upsert functions for backward compatibility
     upsertCallAgentNote,
     upsertCallSessionId,

@@ -39,6 +39,17 @@ theme:
     text: Roboto
     code: Roboto Mono
 
+plugins:
+  - search:
+      separator: '[\s\-,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
+  - badges
+  - exclude:
+      regex:
+        - '^\.#.*'
+        - '.*\.\#.*$'
+hooks:
+  - scripts/mkdocs/hooks/shortcodes.py
+
 extra:
   social:
     - icon: fontawesome/brands/github
@@ -97,6 +108,7 @@ nav:
     - 'Sending SMS': users/sms.md
     - 'Metrics and reports': users/user-report.md
     - 'Presence and status': users/presence.md
+    - 'Call-down lists': users/calldown-lists.md
   - 'Call Logging':
     - 'Logging overview': users/logging.md
     - 'Resolving logging conflicts': users/logging-conflicts.md
@@ -120,7 +132,8 @@ nav:
 - 'Developer guide':
   - 'Introduction': developers/index.md
   - 'Getting started': developers/getting-started.md
-  - 'Technical overview': developers/adapter.md
+  - 'Technical overview': developers/connector.md
+  - 'Call log composer': developers/call-log-composer.md
   - 'Build and deployment': developers/deploy.md
   - 'Integration checklist': developers/proprietary-crm.md
   - 'Adapter': 
@@ -140,13 +153,13 @@ nav:
       - 'Returning errors': developers/errors.md
     - 'Interfaces':
       - 'Overview': developers/interfaces/index.md
-      - 'checkAndRefreshAccessToken': developers/interfaces/checkAndRefreshAccessToken.md
       - 'createCallLog': developers/interfaces/createCallLog.md
       - 'createMessageLog': developers/interfaces/createMessageLog.md
       - 'createContact': developers/interfaces/createContact.md
       - 'getAuthType': developers/interfaces/getAuthType.md
       - 'getCallLog': developers/interfaces/getCallLog.md
       - 'getLicenseStatus': developers/interfaces/getLicenseStatus.md
+      - 'getLogFormatType': developers/interfaces/getLogFormatType.md
       - 'getOauthInfo': developers/interfaces/getOauthInfo.md
       - 'getUserInfo': developers/interfaces/getUserInfo.md
       - 'getUserList': developers/interfaces/getUserList.md
@@ -155,6 +168,7 @@ nav:
       - 'unAuthorize': developers/interfaces/unAuthorize.md
       - 'updateCallLog': developers/interfaces/updateCallLog.md
       - 'updateMessageLog': developers/interfaces/updateMessageLog.md
+      - 'upsertCallDisposition': developers/interfaces/upsertCallDisposition.md
 
 - 'App Connect 2.0 Beta':
   - "What's new": 2.0/index.md

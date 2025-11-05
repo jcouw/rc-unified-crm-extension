@@ -1,7 +1,8 @@
 const moment = require('moment-timezone');
+const dotenv = require('dotenv');
+dotenv.config();
 const {
     composeCallLog,
-    getLogFormatType,
     upsertCallAgentNote,
     upsertCallSessionId,
     upsertCallSubject,
@@ -16,26 +17,24 @@ const {
 } = require('../packages/core/lib/callLogComposer');
 
 const { LOG_DETAILS_FORMAT_TYPE } = require('../packages/core/lib/constants');
-// Register adapters for testing
-const { adapterRegistry } = require('@app-connect/core');
-const bullhorn = require('../src/adapters/bullhorn');
-const clio = require('../src/adapters/clio');
-const googleSheets = require('../src/adapters/googleSheets');
-const insightly = require('../src/adapters/insightly');
-const netsuite = require('../src/adapters/netsuite');
-const pipedrive = require('../src/adapters/pipedrive');
-const redtail = require('../src/adapters/redtail');
-const testCRM = require('../src/adapters/testCRM');
+// Register connectors for testing
+const { connectorRegistry } = require('@app-connect/core');
+const bullhorn = require('../src/connectors/bullhorn');
+const clio = require('../src/connectors/clio');
+const googleSheets = require('../src/connectors/googleSheets');
+const insightly = require('../src/connectors/insightly');
+const netsuite = require('../src/connectors/netsuite');
+const pipedrive = require('../src/connectors/pipedrive');
+const redtail = require('../src/connectors/redtail');
 
-adapterRegistry.setDefaultManifest(require('../src/adapters/manifest.json'));
-adapterRegistry.registerAdapter('bullhorn', bullhorn);
-adapterRegistry.registerAdapter('clio', clio);
-adapterRegistry.registerAdapter('googleSheets', googleSheets);
-adapterRegistry.registerAdapter('insightly', insightly);
-adapterRegistry.registerAdapter('netsuite', netsuite);
-adapterRegistry.registerAdapter('pipedrive', pipedrive);
-adapterRegistry.registerAdapter('redtail', redtail);
-adapterRegistry.registerAdapter('testCRM', testCRM, require('../src/adapters/testCRM/manifest.json'));
+connectorRegistry.setDefaultManifest(require('../src/connectors/manifest.json'));
+connectorRegistry.registerConnector('bullhorn', bullhorn);
+connectorRegistry.registerConnector('clio', clio);
+connectorRegistry.registerConnector('googleSheets', googleSheets);
+connectorRegistry.registerConnector('insightly', insightly);
+connectorRegistry.registerConnector('netsuite', netsuite);
+connectorRegistry.registerConnector('pipedrive', pipedrive);
+connectorRegistry.registerConnector('redtail', redtail);
 
 describe('callLogComposer', () => {
     describe('LOG_DETAILS_FORMAT_TYPE', () => {
@@ -43,16 +42,6 @@ describe('callLogComposer', () => {
             expect(LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT).toBe('text/plain');
             expect(LOG_DETAILS_FORMAT_TYPE.HTML).toBe('text/html');
             expect(LOG_DETAILS_FORMAT_TYPE.MARKDOWN).toBe('text/markdown');
-        });
-    });
-
-    describe('getLogFormatType', () => {
-        test('should return correct format for pipedrive', () => {
-            expect(getLogFormatType('pipedrive')).toBe('text/html');
-        });
-
-        test('should return undefined for unknown platform', () => {
-            expect(getLogFormatType('unknownPlatform')).toBeUndefined();
         });
     });
 
