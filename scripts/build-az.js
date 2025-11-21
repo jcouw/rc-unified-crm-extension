@@ -11,8 +11,8 @@ rm('-rf', `${deployPath}/models`);
 rm('-rf', `${deployPath}/node_modules`);
 rm('-rf', `${deployPath}/lib`);
 rm('-rf', `${deployPath}/core`);
-rm('-rf', `${deployPath}/adapters`);
 rm('-rf', `${deployPath}/packages`);
+rm('-rf', `${deployPath}/connectors`);
 echo('building...');
 mkdir(deployPath)
 mkdir(`${deployPath}/scripts/`);
@@ -26,6 +26,6 @@ mkdir(`${deployPath}/packages`);
 cp('-r', `${projectPath}/packages/core`, `${deployPath}/packages/core`);
 cp(`${projectPath}/src/releaseNotes.json`, `${deployPath}/releaseNotes.json`);
 cp('-r', `${projectPath}/src/lib`, `${deployPath}/lib`);
-cp('-r', `${projectPath}/src/adapters`, `${deployPath}/adapters`);
+cp('-r', `${projectPath}/src/connectors`, `${deployPath}/connectors`);
 
 echo(`build done, output in ${deployPath}`);

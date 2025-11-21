@@ -1,0 +1,139 @@
+{
+    "serverUrl": "http://localhost:6066",
+    "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html",
+    "author": {
+        "name": "Loyally",
+        "websiteUrl": "https://loyally.eu"
+    },
+    "platforms": {
+        "gohighlevel": {
+            "logoUrl": "https://raw.githubusercontent.com/ringcentral/rc-unified-crm-extension/main/docs/img/CRMLogos/GoHighLevel_Logo.png",
+            "documentationUrl": "https://ringcentral.github.io/rc-unified-crm-extension",
+            "releaseNotesUrl": "https://ringcentral.github.io/rc-unified-crm-extension/release-notes/",
+            "getSupportUrl": "https://community.ringcentral.com/topic/new?fid=22",
+            "urlIdentifier": "*",
+            "embedUrls": "*",
+            "name": "gohighlevel",
+            "logFormat": "text/plain",
+            "displayName": "GoHighLevel",
+            "useLicense": true,
+            "requestConfig": {
+                "timeout": 30
+            },
+            "auth": {
+                "type": "oauth",
+                "oauth": {
+                    "authUrl": "https://marketplace.leadconnectorhq.com/oauth/chooselocation",
+                    "clientId": "6853f0bbff0de297bfb03756-mc3adi25",
+                    "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html",
+                    "customState": "",
+                    "scope": "scope=contacts.write conversations.write contacts.readonly conversations.readonly conversations/message.readonly conversations/message.write users.readonly"
+                }
+            },
+            "serverSideLogging": {
+                "url": "https://crm-logging.labs.ringcentral.com",
+                "rcClientId": "Y4m1YREFKbXdDoet5djv46",
+                "useAdminAssignedUserToken": true,
+                "additionalFields": []
+            },
+            "canOpenLogPage": false,
+            "contactPageUrl": "https://{hostname}/v2/location/{contactType}/contacts/detail/{contactId}",
+            "contactTypes": [
+                {
+                    "display": "Contact",
+                    "value": "contact"
+                }
+            ],
+            "embeddedOnCrmPage": {
+                "welcomePage": {
+                    "docLink": "https://ringcentral.github.io/rc-unified-crm-extension/",
+                    "videoLink": "https://youtu.be/pQgdsAR1UCI"
+                }
+            },
+            "settings": [
+                {
+                    "id": "testCallLogDetails",
+                    "type": "section",
+                    "name": "Call log details",
+                    "items": [
+                        {
+                            "id": "addCallLogNote",
+                            "type": "boolean",
+                            "name": "Add note to call log",
+                            "defaultValue": true
+                        },
+                        {
+                            "id": "addCallLogSubject",
+                            "type": "boolean",
+                            "name": "Add subject to call log",
+                            "defaultValue": true
+                        },
+                        {
+                            "id": "addCallLogContactNumber",
+                            "type": "boolean",
+                            "name": "Add contact phone number to call log",
+                            "defaultValue": true
+                        },
+                        {
+                            "id": "addCallLogDateTime",
+                            "type": "boolean",
+                            "name": "Add date and time to call log",
+                            "defaultValue": true
+                        },
+                        {
+                            "id": "addCallLogDuration",
+                            "type": "boolean",
+                            "name": "Add duration to call log",
+                            "defaultValue": true
+                        },
+                        {
+                            "id": "addCallLogResult",
+                            "type": "boolean",
+                            "name": "Add call result to call log",
+                            "defaultValue": true
+                        },
+                        {
+                            "id": "addCallLogRecording",
+                            "type": "boolean",
+                            "name": "Add recording link to call log",
+                            "defaultValue": true
+                        },
+                        {
+                            "id": "addCallLogAiNote",
+                            "type": "boolean",
+                            "name": "Smart summary",
+                            "defaultValue": false
+                        },
+                        {
+                            "id": "addCallLogTranscript",
+                            "type": "boolean",
+                            "name": "Call transcript",
+                            "defaultValue": false
+                        },
+                        {
+                            "id": "addCallLogLegs",
+                            "type": "boolean",
+                            "name": "Call journey",
+                            "defaultValue": false
+                        }
+                    ]
+                }
+            ],
+            "page": {
+                "callLog": {
+                    "additionalFields": []
+                },
+                "messageLog": {
+                    "additionalFields": []
+                }
+            },
+            "rcAdditionalSubmission": [
+                {
+                    "id": "departmentName",
+                    "path": "cachedData.extensionInfo.contact.department"
+                }
+            ]
+        }
+    },
+    "version": "1.6.5"
+}

@@ -15,8 +15,8 @@ const insightly = require('./connectors/insightly');
 const netsuite = require('./connectors/netsuite');
 const pipedrive = require('./connectors/pipedrive');
 const redtail = require('./connectors/redtail');
-const freshdesk = require('./adapters/freshdesk');
-const gohighlevel = require('./adapters/gohighlevel');
+const freshdesk = require('./connectors/freshdesk');
+const gohighlevel = require('./connectors/gohighlevel');
 const googleSheetsExtra = require('./connectors/googleSheets/extra.js');
 const adminCore = require('@app-connect/core/handlers/admin');
 
@@ -31,8 +31,8 @@ connectorRegistry.registerConnector('insightly', insightly);
 connectorRegistry.registerConnector('netsuite', netsuite);
 connectorRegistry.registerConnector('pipedrive', pipedrive);
 connectorRegistry.registerConnector('redtail', redtail);
-adapterRegistry.registerAdapter('freshdesk', freshdesk, require('./adapters/freshdesk/manifest.json'));
-adapterRegistry.registerAdapter('gohighlevel', gohighlevel, require('./adapters/gohighlevel/manifest.json'));
+connectorRegistry.registerConnector('freshdesk', freshdesk, require('./connectors/freshdesk/manifest.json'));
+connectorRegistry.registerConnector('gohighlevel', gohighlevel, require('./connectors/gohighlevel/manifest.json'));
 connectorRegistry.registerConnector('proxy', proxyConnector);
 
 // Create Express app with core functionality
