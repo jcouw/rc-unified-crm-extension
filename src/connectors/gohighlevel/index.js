@@ -2,7 +2,7 @@ const axios = require('axios');
 const moment = require('moment');
 const { parsePhoneNumber } = require('awesome-phonenumber');
 const { secondsToHoursMinutesSeconds } = require('@app-connect/core/lib/util');
-const { composeCallLog } = require('@app-connect/core/lib/callLogComposer');
+const composer = require('@app-connect/core/lib/callLogComposer');
 const ClientOAuth2 = require('client-oauth2');
 const { cat } = require('shelljs');
 const { UserModel } = require('@app-connect/core/models/userModel');
@@ -239,25 +239,10 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
             callLogResp = await createGHLCallLog(authHeader, convId, callLog.from.phoneNumber, callLog.to.phoneNumber, callLog.startTime, callLog.direction === 'Inbound');
         }
 
-        // // Create a note in GHL for the call log + agent notes
-        // let subTitle = callLog.customSubject ?? `[Call] ${callLog.direction} Call ${callLog.direction === 'Outbound' ? 'to' : 'from'} ${contactInfo.name} [${contactInfo.phone}]`;
-        // let noteBody = upsertSubject({ body: '', subject: subTitle });
-
-        // if (user.userSettings?.addCallLogContactNumber?.value ?? true) { noteBody = upsertContactPhoneNumber({ body: noteBody, phoneNumber: contactInfo.phoneNumber, direction: callLog.direction }); }
-        // if (user.userSettings?.addCallLogDateTime?.value ?? true) { noteBody = upsertCallDateTime({ body: noteBody, startTime: callLog.startTime, timezoneOffset: user.timezoneOffset }); }
-        // if (user.userSettings?.addCallLogDuration?.value ?? true) { noteBody = upsertCallDuration({ body: noteBody, duration: callLog.duration }); }
-        // if (user.userSettings?.addCallLogResult?.value ?? true) { noteBody = upsertCallResult({ body: noteBody, result: callLog.result }); }
-        // if (!!callLog.recording?.link && (user.userSettings?.addCallLogRecording?.value ?? true)) { noteBody = upsertCallRecording({ body: noteBody, recordingLink: callLog.recording.link }); }
-        // if (!!aiNote && (user.userSettings?.addCallLogAiNote?.value ?? true)) { noteBody = upsertAiNote({ body: noteBody, aiNote }); }
-        // if (!!transcript && (user.userSettings?.addCallLogTranscript?.value ?? true)) { noteBody = upsertTranscript({ body: noteBody, transcript }); }
-        // if (user.userSettings?.addCallLogNote?.value ?? true) { noteBody = upsertCallAgentNote({ body: noteBody, note: note }); }
-
-        // const callLogNoteResponse = await createGHLNote(authHeader, noteBody, user.id, contactInfo.id);
-
         // bugfix: make sure RC adds a note even if user did not enter any note, neede to maintain note formatting for future updates
-        note = note ? note : 'not provided';
-        if (!composedLogDetails.toLowerCase().startsWith('- note:'))
-            composedLogDetails = `- Note: ${note}\n${composedLogDetails}`;
+        // note = note ? note : 'not provided';
+        // if (!composedLogDetails.toLowerCase().startsWith('- note:'))
+        //     composedLogDetails = `- Note: ${note}\n${composedLogDetails}`;
 
         const callLogNoteResponse = await createGHLNote(authHeader, composedLogDetails, user.id, contactInfo.id);
 
@@ -343,65 +328,63 @@ async function getCallLog({ user, callLogId, contactId, authHeader }) {
 // - duration: more accurate duration will be patched to this update function shortly after the call ends
 // - result: final result will be patched to this update function shortly after the call ends
 // - recordingLink: recordingLink updated from RingCentral. It's separated from createCallLog because recordings are not generated right after a call. It needs to be updated into existing call log
-async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript, additionalSubmission, composedLogDetails, existingCallLogDetails, hashedAccountId }) {
+async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript, legs, additionalSubmission, composedLogDetails, existingCallLogDetails, hashedAccountId, isFromSSCL, ringSenseTranscript, ringSenseSummary, ringSenseAIScore, ringSenseBulletedSummary, ringSenseLink }) {
     console.log('[RC App] updateCallLog', note ? 'hasnote' : 'no note');
-    console.log('[RC App] updateCallLog existingCallLog', existingCallLog);
-    console.log('[RC App] updateCallLog existingCallLogDetails', existingCallLogDetails);
     console.log('[RC App] updateCallLog composedLogDetails', composedLogDetails);
 
     try {
         let callLogNoteId = existingCallLog.thirdPartyLogId;
         let contactId = existingCallLog.contactId;
+        // let splitted = existingCallLog.thirdPartyLogId.split('-');
+        // let contactId = null;
+        // let callLogNoteId = null;
+        // if (splitted.length > 1) {
+        //     contactId = splitted[0];
+        //     callLogNoteId = splitted[1];
+        //     console.log('[RC App] updateCallLog got ids', contactId, callLogNoteId);
+        // }
+
         let noteResp = null
         noteResp = await getGHLNote(authHeader, contactId, callLogNoteId);
 
-        // let logBody = noteResp.note.body;
-        // if (!!startTime && (user.userSettings?.addCallLogDateTime?.value ?? true)) { logBody = upsertCallDateTime({ body: logBody, startTime, timezoneOffset: user.timezoneOffset }); }
-        // if (!!duration && (user.userSettings?.addCallLogDuration?.value ?? true)) { logBody = upsertCallDuration({ body: logBody, duration }); }
-        // if (!!result && (user.userSettings?.addCallLogResult?.value ?? true)) { logBody = upsertCallResult({ body: logBody, result }); }
-        // if (!!recordingLink && (user.userSettings?.addCallLogRecording?.value ?? true)) { logBody = upsertCallRecording({ body: logBody, recordingLink }); }
-        // if (!!aiNote && (user.userSettings?.addCallLogAiNote?.value ?? true)) { logBody = upsertAiNote({ body: logBody, aiNote }); }
-        // if (!!transcript && (user.userSettings?.addCallLogTranscript?.value ?? true)) { logBody = upsertTranscript({ body: logBody, transcript }); }
-        // if (user.userSettings?.addCallLogNote?.value ?? true) { logBody = upsertCallAgentNote({ body: logBody, note: note }); }
+        let logBody = noteResp.note.body;
+        if (!!subject && (user.userSettings?.addCallLogSubject?.value ?? true)) { logBody = composer.upsertCallSubject({ body: logBody, subject, logFormat: user.userSettings?.logFormat }); }
+        if (!!startTime && (user.userSettings?.addCallLogDateTime?.value ?? true)) { logBody = composer.upsertCallDateTime({ body: logBody, startTime, logFormat: user.userSettings?.logFormat }); }
+        if (!!duration && (user.userSettings?.addCallLogDuration?.value ?? true)) { logBody = composer.upsertCallDuration({ body: logBody, duration, logFormat: user.userSettings?.logFormat }); }
+        if (!!result && (user.userSettings?.addCallLogResult?.value ?? true)) { logBody = composer.upsertCallResult({ body: logBody, result, logFormat: user.userSettings?.logFormat }); }
+        if (!!recordingLink && (user.userSettings?.addCallLogRecording?.value ?? true)) { logBody = composer.upsertCallRecording({ body: logBody, recordingLink, logFormat: user.userSettings?.logFormat }); }
+        if (!!aiNote && (user.userSettings?.addCallLogAiNote?.value ?? true)) { logBody = composer.upsertAiNote({ body: logBody, aiNote, logFormat: user.userSettings?.logFormat }); }
+        if (!!transcript && (user.userSettings?.addCallLogTranscript?.value ?? true)) { logBody = composer.upsertTranscript({ body: logBody, transcript, logFormat: user.userSettings?.logFormat }); }
+        if (user.userSettings?.addCallLogNote?.value ?? true) { logBody = composer.upsertCallAgentNote({ body: logBody, note: note, logFormat: user.userSettings?.logFormat }); }
+        if (user.userSettings?.addCallSessionId?.value ?? true) { logBody = composer.upsertCallSessionId({ body: logBody, id: existingCallLog.sessionId, logFormat: user.userSettings?.logFormat }); }
 
+        const ringcentralUsername = (existingCallLog.direction === 'Inbound' ? existingCallLog?.to?.name : existingCallLog?.from?.name) ?? null;
+        if (ringcentralUsername) {
+            if (user.userSettings?.addRingCentralUserName?.value ?? true) { logBody = composer.upsertRingCentralUserName({ body: logBody, id: existingCallLog.sessionId, logFormat: user.userSettings?.logFormat }); }
+        }
 
+        if (user.userSettings?.addRingCentralNumber?.value ?? false) {
+            const ringcentralNumber = existingCallLog.direction === 'Inbound' ? existingCallLog?.to?.phoneNumber : existingCallLog?.from?.phoneNumber;
+            if (ringcentralNumber) {
+                const ringcentralExtensionNumber = existingCallLog.direction === 'Inbound' ? existingCallLog?.from?.extensionNumber : existingCallLog?.to?.extensionNumber;
+                if (user.userSettings?.addRingCentralUserName?.value ?? true) { logBody = composer.upsertRingCentralNumberAndExtension({ body: logBody, extension: ringcentralExtensionNumber ?? '', logFormat: user.userSettings?.logFormat }); }
+            }
+        }
 
-        // await updateGHLNote(authHeader, logBody, user.id, contactId, callLogNoteId);
+        console.log('[RC App] updateCallLog user.userSettings?.addCallLogLegs?.value', user.userSettings?.addCallLogLegs?.value);
+        console.log('[RC App] updateCallLog existingCallLog.legs', legs);
 
-        // Ignore certain situations
-        let skipThisUpdate = false;
-        skipThisUpdate = result.toLowerCase().includes('ip phone offline');
+        if (user.userSettings?.addCallLogLegs?.value ?? true) { logBody = composer.upsertLegs({ body: logBody, legs: legs, logFormat: user.userSettings?.logFormat }); }
+        if (user.userSettings?.addCallLogRingSenseRecordingTranscript?.value ?? true) { logBody = composer.upsertRingSenseTranscript({ body: logBody, transcript: ringSenseTranscript, logFormat: user.userSettings?.logFormat }); }
+        if (user.userSettings?.addCallLogRingSenseRecordingSummary?.value ?? true) { logBody = composer.upsertRingSenseSummary({ body: logBody, summary: ringSenseSummary, logFormat: user.userSettings?.logFormat }); }
+        if (user.userSettings?.addCallLogRingSenseRecordingAIScore?.value ?? true) { logBody = composer.upsertRingSenseAIScore({ body: logBody, score: ringSenseAIScore, logFormat: user.userSettings?.logFormat }); }
+        if (user.userSettings?.addCallLogRingSenseRecordingBulletedSummary?.value ?? true) { logBody = composer.upsertRingSenseBulletedSummary({ body: logBody, summary: ringSenseBulletedSummary, logFormat: user.userSettings?.logFormat }); }
+        if (user.userSettings?.addCallLogRingSenseRecordingLink?.value ?? true) { logBody = composer.upsertRingSenseLink({ body: logBody, link: ringSenseLink, logFormat: user.userSettings?.logFormat }); }
 
-        // Not 100% sure but it seems that because the composedLogDetail contains "- Note: -Summary:" the update flow fails as there is no
-        // bugfix: make sure RC adds a note even if user did not enter any note, neede to maintain note formatting for future updates
-        // note = note ? note : 'not provided';
-        // if (!composedLogDetails.toLowerCase().startsWith('- note:'))
-        //     composedLogDetails = `- Note: ${note}\n${composedLogDetails}`;
-
-        const logBody = await composeCallLog({
-            logFormat: 'text/plain',
-            existingBody: noteResp.note.body,
-            callLog: existingCallLog,
-            note: note,
-            user: user,
-            aiNote: aiNote,
-            transcript: transcript,
-            recordingLink: recordingLink,
-            subject: subject,
-            startTime: startTime,
-            duration: duration,
-            result: result
-        });
-
-        console.log('[RC App] updateCallLog create logBody', logBody);
-
-        if (!skipThisUpdate)
-            await updateGHLNote(authHeader, logBody, user.id, contactId, callLogNoteId);
-        else
-            console.log('[RC App] updateCallLog skipped');
+        await updateGHLNote(authHeader, logBody, user.id, contactId, callLogNoteId);
 
         return {
-            updatedNote: logBody,
+            updatedNote: note,
             returnMessage: {
                 message: 'Call log updated.',
                 messageType: 'success',
