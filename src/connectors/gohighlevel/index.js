@@ -563,7 +563,7 @@ function splitAtFirstNewline(str) {
     };
 }
 function processErrorToRC(error) {
-    console.debug('[RC App] processErrorToRC', error);
+    console.debug('[RC App] processErrorToRC', error.message);
     return {
         logId: '1234',
         returnMessage: {

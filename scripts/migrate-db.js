@@ -7,6 +7,8 @@ const { sequelize } = require('@app-connect/core/models/sequelize');
 
 async function run() {
   try {
+    
+
     console.log('[migrate] authenticating sequelize...');
     await sequelize.authenticate();
     console.log('[migrate] connected.');
@@ -68,6 +70,18 @@ async function run() {
     } else {
       console.log("[migrate] adding column 'rcAccountId' to users...");
       await sequelize.query("ALTER TABLE users ADD COLUMN rcAccountId VARCHAR(255);");
+      console.log("[migrate] column added.");
+    }
+
+    // callLogs.contactId
+    console.log("[migrate] checking if 'contactId' column exists on callLogs...");
+    [rows] = await sequelize.query("PRAGMA table_info('callLogs');");
+    exists = rows.some(r => r.name === 'contactId');
+    if (exists) {
+      console.log("[migrate] column 'contactId' already exists. Nothing to do.");
+    } else {
+      console.log("[migrate] adding column 'contactId' to callLogs...");
+      await sequelize.query("ALTER TABLE callLogs ADD COLUMN contactId VARCHAR(255);");
       console.log("[migrate] column added.");
     }
 

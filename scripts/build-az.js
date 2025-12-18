@@ -17,6 +17,7 @@ echo('building...');
 mkdir(deployPath)
 mkdir(`${deployPath}/scripts/`);
 cp(`${projectPath}/package.json`, `${deployPath}/package.json`);
+cp(`${projectPath}/scripts/preinstall-setup.js`, `${deployPath}/scripts/preinstall-setup.js`);
 cp(`${projectPath}/scripts/postinstall-fix-core.js`, `${deployPath}/scripts/postinstall-fix-core.js`);
 cp(`${projectPath}/package-lock.json`, `${deployPath}/package-lock.json`);
 cp(`${projectPath}/src/index.js`, `${deployPath}/index.js`);
