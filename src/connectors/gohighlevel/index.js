@@ -155,20 +155,31 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
                 })
             }
         } else {
+            let createdContactId = null;
+            if (user.userSettings?.createContact?.value) {
+                let contactResponse = null
+                contactResponse = await createGHLContact(user, authHeader, phoneNumber, `Unknown caller ${phoneNumber}`);
 
-            // [2025-06-27] DISABLED, talked with Byrne Reese. Maybe in the future RC will add a setting "auto-create contact"...
-            // let contactResponse = null
-            // contactResponse = await createGHLContact(user, authHeader, phoneNumber, `Unknown caller ${phoneNumber}`);
+                if (contactResponse) {
+                    createdContactId = contactResponse.contact.id;
+                    matchedContactInfo.push({
+                        id: contactResponse.contact.id,
+                        name: (`${contactResponse.contact.firstName ?? ''} ${contactResponse.contact.lastName ?? ''}`),
+                        type: user.platformAdditionalInfo.ghl_locationId, // abuse type to store locationId, need this value in manifest for contactPageUrl setting
+                        phone: contactResponse.contact.phone,
+                        additionalInfo: null
+                    })
+                }
+            }
 
-            // if (contactResponse) {
-            //     matchedContactInfo.push({
-            //         id: contactResponse.contact.id,
-            //         name: (`${contactResponse.contact.firstName ?? ''} ${contactResponse.contact.lastName ?? ''}`),
-            //         type: user.platformAdditionalInfo.ghl_locationId, // abuse type to store locationId, need this value in manifest for contactPageUrl setting
-            //         phone: contactResponse.contact.phone,
-            //         additionalInfo: null
-            //     })
-            // }
+            if(createdContactId && user.userSettings?.createOpportunity?.value) {
+                let oppResponse = null
+                let pipelineId = user.userSettings?.defaultOpportunityPipelineId?.value
+                let name = 'RC Auto-generated opportunity';
+                let status = user.userSettings?.defaultOpportunityStatusId?.value ?? [][0] ?? 'open';
+                status = status.length === 0 ? "open" : status[0];
+                oppResponse = createGHLOpportunity(user, authHeader, pipelineId, name, status, createdContactId);
+            }
         }
 
         // If you want to support creating a new contact from the extension, below placeholder contact should be used
@@ -792,6 +803,24 @@ async function createGHLContact(user, authHeader, phoneNumber, newContactName) {
     };
 
     let url = `${getApiUrl()}/contacts`;
+    return await makeRequestWithRetry({
+        method: "POST",
+        payload: payload,
+        url,
+        headers: { 'Authorization': authHeader }
+    });
+}
+
+async function createGHLOpportunity(user, authHeader, pipelineId, name, status, contactId) {
+    let payload = {
+        locationId: user.platformAdditionalInfo.ghl_locationId,
+        pipelineId: pipelineId,
+        name: name,
+        status: status,
+        contactId: contactId
+    };
+
+    let url = `${getApiUrl()}/opportunities/`;
     return await makeRequestWithRetry({
         method: "POST",
         payload: payload,

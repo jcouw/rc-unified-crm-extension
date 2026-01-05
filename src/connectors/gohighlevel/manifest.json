@@ -1,5 +1,5 @@
 {
-    "serverUrl": "http://localhost:6066",
+    "serverUrl": "https://c28d547e3850.ngrok-free.app",
     "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html",
     "author": {
         "name": "Loyally",
@@ -27,7 +27,7 @@
                     "clientId": "6853f0bbff0de297bfb03756-mc3adi25",
                     "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html",
                     "customState": "",
-                    "scope": "scope=contacts.write conversations.write contacts.readonly conversations.readonly conversations/message.readonly conversations/message.write users.readonly"
+                    "scope": "scope=contacts.write conversations.write contacts.readonly conversations.readonly conversations/message.readonly conversations/message.write users.readonly opportunities.write"
                 }
             },
             "serverSideLogging": {
@@ -54,67 +54,59 @@
                 {
                     "id": "testCallLogDetails",
                     "type": "section",
-                    "name": "Call log details",
+                    "name": "Adapter specific options",
                     "items": [
                         {
-                            "id": "addCallLogNote",
+                            "id": "createContact",
                             "type": "boolean",
-                            "name": "Add note to call log",
-                            "defaultValue": true
-                        },
-                        {
-                            "id": "addCallLogSubject",
-                            "type": "boolean",
-                            "name": "Add subject to call log",
-                            "defaultValue": true
-                        },
-                        {
-                            "id": "addCallLogContactNumber",
-                            "type": "boolean",
-                            "name": "Add contact phone number to call log",
-                            "defaultValue": true
-                        },
-                        {
-                            "id": "addCallLogDateTime",
-                            "type": "boolean",
-                            "name": "Add date and time to call log",
-                            "defaultValue": true
-                        },
-                        {
-                            "id": "addCallLogDuration",
-                            "type": "boolean",
-                            "name": "Add duration to call log",
-                            "defaultValue": true
-                        },
-                        {
-                            "id": "addCallLogResult",
-                            "type": "boolean",
-                            "name": "Add call result to call log",
-                            "defaultValue": true
-                        },
-                        {
-                            "id": "addCallLogRecording",
-                            "type": "boolean",
-                            "name": "Add recording link to call log",
-                            "defaultValue": true
-                        },
-                        {
-                            "id": "addCallLogAiNote",
-                            "type": "boolean",
-                            "name": "Smart summary",
+                            "name": "Create a new contact for calls where no matching contact is found",
                             "defaultValue": false
                         },
                         {
-                            "id": "addCallLogTranscript",
+                            "id": "createOpportunity",
                             "type": "boolean",
-                            "name": "Call transcript",
+                            "name": "Create a new opportunity for calls where no matching contact is found",
                             "defaultValue": false
                         },
                         {
-                            "id": "addCallLogLegs",
-                            "type": "boolean",
-                            "name": "Call journey",
-                            "defaultValue": false
+                            "id": "defaultOpportunityPipelineId",
+                            "type": "inputField",
+                            "name": "The default pipeline ID to create opportunities in",
+                            "description": "To find the ID navigate to the pipeline and copy the ID from the URL"
+                        },
+                        {
+                            "id": "defaultOpportunityStatusId",
+                            "type": "option",
+                            "name": "Default opportunity status",
+                            "options": [
+                                {
+                                    "id": "open",
+                                    "name": "Open"
+                                },
+                                {
+                                    "id": "won",
+                                    "name": "Won"
+                                },
+                                {
+                                    "id": "lost",
+                                    "name": "Lost"
+                                },
+                                {
+                                    "id": "abandoned",
+                                    "name": "Abandoned"
+                                },
+                                {
+                                    "id": "all",
+                                    "name": "All"
+                                }
+                            ],
+                            "multiple": true,
+                            "required": false,
+                            "checkbox": false,
+                            "defaultValue": [
+                                "open"
+                            ],
+                            "description": "Select the default status for newly created opportunities"
                         }
                     ]
                 }
