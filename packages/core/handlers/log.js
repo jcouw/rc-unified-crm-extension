@@ -87,7 +87,9 @@ async function createCallLog({ platform, userId, incomingData, hashedAccountId, 
             id: contactId,
             phoneNumber: contactNumber,
             type: incomingData.contactType ?? "",
-            name: incomingData.contactName ?? ""
+            name: incomingData.contactName ?? "",
+            isNewContact: incomingData.isNewContact || false,
+            additionalInfo: incomingData.additionalInfo || {}
         };
         
         // Compose call log details centrally

@@ -151,7 +151,8 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
                     name: `${c.firstNameLowerCase ? c.firstNameLowerCase.charAt(0).toUpperCase() + c.firstNameLowerCase.slice(1) : ''} ${c.lastNameLowerCase || ''}`.trim(),
                     type: user.platformAdditionalInfo.ghl_locationId, // abuse type to store locationId, need this value in manifest for contactPageUrl setting
                     phone: c.phone,
-                    additionalInfo: null
+                    additionalInfo: null,
+                    isNewContact: false
                 })
             }
         } else {
@@ -167,18 +168,10 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
                         name: (`${contactResponse.contact.firstName ?? ''} ${contactResponse.contact.lastName ?? ''}`),
                         type: user.platformAdditionalInfo.ghl_locationId, // abuse type to store locationId, need this value in manifest for contactPageUrl setting
                         phone: contactResponse.contact.phone,
-                        additionalInfo: null
+                        additionalInfo: null,
+                        isNewContact: true
                     })
                 }
-            }
-
-            if(createdContactId && user.userSettings?.createOpportunity?.value) {
-                let oppResponse = null
-                let pipelineId = user.userSettings?.defaultOpportunityPipelineId?.value
-                let name = 'RC Auto-generated opportunity';
-                let status = user.userSettings?.defaultOpportunityStatusId?.value ?? [][0] ?? 'open';
-                status = status.length === 0 ? "open" : status[0];
-                oppResponse = createGHLOpportunity(user, authHeader, pipelineId, name, status, createdContactId);
             }
         }
 
@@ -234,6 +227,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
 
     try {
         let convId = null;
+
         // Search GHL conversation based on GHL contactId
         let foundConvResp = await searchGHLConversation(authHeader, contactInfo.id);
         if (!foundConvResp || !foundConvResp.conversations || foundConvResp.conversations.length === 0) {
@@ -249,11 +243,6 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
         if (convId) {
             callLogResp = await createGHLCallLog(authHeader, convId, callLog.from.phoneNumber, callLog.to.phoneNumber, callLog.startTime, callLog.direction === 'Inbound');
         }
-
-        // bugfix: make sure RC adds a note even if user did not enter any note, neede to maintain note formatting for future updates
-        // note = note ? note : 'not provided';
-        // if (!composedLogDetails.toLowerCase().startsWith('- note:'))
-        //     composedLogDetails = `- Note: ${note}\n${composedLogDetails}`;
 
         const callLogNoteResponse = await createGHLNote(authHeader, composedLogDetails, user.id, contactInfo.id);
 

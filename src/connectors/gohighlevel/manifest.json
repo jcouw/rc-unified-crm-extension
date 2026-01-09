@@ -1,5 +1,5 @@
 {
-    "serverUrl": "https://c28d547e3850.ngrok-free.app",
+    "serverUrl": "http://localhost:6066",
     "redirectUri": "https://ringcentral.github.io/ringcentral-embeddable/redirect.html",
     "author": {
         "name": "Loyally",
@@ -52,61 +52,15 @@
             },
             "settings": [
                 {
-                    "id": "testCallLogDetails",
+                    "id": "ghlOptions",
                     "type": "section",
-                    "name": "Adapter specific options",
+                    "name": "CRM options",
                     "items": [
                         {
                             "id": "createContact",
                             "type": "boolean",
-                            "name": "Create a new contact for calls where no matching contact is found",
+                            "name": "Create a new contact for unknown callers",
                             "defaultValue": false
-                        },
-                        {
-                            "id": "createOpportunity",
-                            "type": "boolean",
-                            "name": "Create a new opportunity for calls where no matching contact is found",
-                            "defaultValue": false
-                        },
-                        {
-                            "id": "defaultOpportunityPipelineId",
-                            "type": "inputField",
-                            "name": "The default pipeline ID to create opportunities in",
-                            "description": "To find the ID navigate to the pipeline and copy the ID from the URL"
-                        },
-                        {
-                            "id": "defaultOpportunityStatusId",
-                            "type": "option",
-                            "name": "Default opportunity status",
-                            "options": [
-                                {
-                                    "id": "open",
-                                    "name": "Open"
-                                },
-                                {
-                                    "id": "won",
-                                    "name": "Won"
-                                },
-                                {
-                                    "id": "lost",
-                                    "name": "Lost"
-                                },
-                                {
-                                    "id": "abandoned",
-                                    "name": "Abandoned"
-                                },
-                                {
-                                    "id": "all",
-                                    "name": "All"
-                                }
-                            ],
-                            "multiple": true,
-                            "required": false,
-                            "checkbox": false,
-                            "defaultValue": [
-                                "open"
-                            ],
-                            "description": "Select the default status for newly created opportunities"
                         }
                     ]
                 }
