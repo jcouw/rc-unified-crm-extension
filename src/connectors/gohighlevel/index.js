@@ -214,7 +214,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
 // - note: note submitted by user
 // - additionalSubmission: all additional fields that are setup in manifest under call log page
 async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript, composedLogDetails, hashedAccountId }) {
-    console.log('[RC App] createCallLog', contactInfo?.id, composedLogDetails);
+    console.log('[RC App] createCallLog', contactInfo?.id, user.platformAdditionalInfo.ghl_locationId);
 
     // even though RC provide the getLicenseStatus interface, we still check here because we want to  display a clear notification
     try {
@@ -261,7 +261,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
 }
 
 async function getCallLog({ user, callLogId, contactId, authHeader }) {
-    console.log('[RC App] getCallLog', callLogId);
+    console.log('[RC App] getCallLog', callLogId, user?.platformAdditionalInfo?.ghl_locationId);
 
     try {
         let callLogNoteId = callLogId;
@@ -329,8 +329,7 @@ async function getCallLog({ user, callLogId, contactId, authHeader }) {
 // - result: final result will be patched to this update function shortly after the call ends
 // - recordingLink: recordingLink updated from RingCentral. It's separated from createCallLog because recordings are not generated right after a call. It needs to be updated into existing call log
 async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript, legs, additionalSubmission, composedLogDetails, existingCallLogDetails, hashedAccountId, isFromSSCL, ringSenseTranscript, ringSenseSummary, ringSenseAIScore, ringSenseBulletedSummary, ringSenseLink }) {
-    console.log('[RC App] updateCallLog', note ? 'hasnote' : 'no note');
-    console.log('[RC App] updateCallLog composedLogDetails', composedLogDetails);
+    console.log('[RC App] updateCallLog', existingCallLog.thirdPartyLogId, user?.platformAdditionalInfo?.ghl_locationId);
 
     try {
         let callLogNoteId = existingCallLog.thirdPartyLogId;
@@ -403,7 +402,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
 // - recordingLink: recording link of voice mail
 // - additionalSubmission: all additional fields that are setup in manifest under call log page
 async function createMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, faxDocLink }) {
-    console.log('[RC App] createMessageLog');
+    console.log('[RC App] createMessageLog', contactInfo?.id, user?.platformAdditionalInfo?.ghl_locationId);
 
     // even though RC provide the getLicenseStatus interface, we still check here because we want to  display a clear notification
     try {
@@ -491,12 +490,12 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
 
 // Used to update existing message log so to group message in the same day together
 async function updateMessageLog({ user, contactInfo, existingMessageLog, message, authHeader }) {
-    console.log('[RC App] updateMessageLog, going to call createMessageLog as handling is the same');
+    console.log('[RC App] updateMessageLog', user?.platformAdditionalInfo?.ghl_locationId);
     return createMessageLog({ user, contactInfo, authHeader, message, additionalSubmission: null, recordingLink: null, faxDocLink: null });
 }
 
 async function createContact({ user, authHeader, phoneNumber, newContactName, newContactType }) {
-    console.log('[RC App] createContact');
+    console.log('[RC App] createContact', user?.platformAdditionalInfo?.ghl_locationId);
 
     let contactResponse = await createGHLContact(user, authHeader, phoneNumber, newContactName);
 
@@ -699,7 +698,7 @@ function getApiUrl() {
 }
 
 async function makeRequestWithRetry({ method, url, payload = null, headers = {}, retries = 3, delay = 2000 }) {
-    console.debug(`[RC App] GHL api call`, method, url, payload);
+    console.debug(`[RC App] GHL api call`, method, url);
     let lastError = null;
     // GoHighLevel API requires a specific version
     headers.Version = ghl_api_version;
