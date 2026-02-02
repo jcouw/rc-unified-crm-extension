@@ -29,3 +29,6 @@ client/src/manifest.json
 .dynamodb/shared-local-instance.db
 
 local.session.sql
+backup_files/userModel.js
+backup_files/sequelize.js
+backup_files/user.js
