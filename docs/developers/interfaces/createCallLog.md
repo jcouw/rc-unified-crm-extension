@@ -21,11 +21,11 @@ The `updateCallLog` and `createCallLog` interfaces both receive the constituent 
 | `additionalSubmission` | All of the additional custom fields defined in the manifest and submitted by the user.                   |
 | `aiNote`       |  AI summary of the phone call   | 
 | `transcript`       |  Transcript of the phone call   | 
-| `ringSenseTranscript`  | The transcript from [RingSense](../../users/ringsense.md) | 
-| `ringSenseSummary`     | The summary from [RingSense](../../users/ringsense.md) | 
-| `ringSenseBulletedSummary`     | The bulleted summary from [RingSense](../../users/ringsense.md) |
-| `ringSenseAIScore`     | The AI score from [RingSense](../../users/ringsense.md) | 
-| `ringSenseLink`     | The link to [RingSense](../../users/ringsense.md) recording | 
+| `ringSenseTranscript`  | The transcript from [ACE](../../users/ace.md) | 
+| `ringSenseSummary`     | The summary from [ACE](../../users/ace.md) | 
+| `ringSenseBulletedSummary`     | The bulleted summary from [ACE](../../users/ace.md) |
+| `ringSenseAIScore`     | The AI score from [ACE](../../users/ace.md) | 
+| `ringSenseLink`     | The link to [ACE](../../users/ace.md) recording | 
 | `composedLogDetails`       |  Formated log details that can be directly put into log body  | 
 
 ### Contact Info

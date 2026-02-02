@@ -80,7 +80,7 @@ describe('callLogComposer', () => {
                         transcript: 'RS transcript',
                         logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT
                     });
-                    expect(result).toBe('- RingSense transcript:\nRS transcript\n--- END\n');
+                    expect(result).toBe('\n- RingSense transcript:\nRS transcript\n--- END\n');
                 });
 
                 test('should replace existing RingSense transcript', () => {
@@ -124,7 +124,7 @@ describe('callLogComposer', () => {
                         summary: 'Point A\nPoint B',
                         logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT
                     });
-                    expect(result).toBe('- RingSense summary:\nPoint A\nPoint B\n--- END\n');
+                    expect(result).toBe('\n- RingSense summary:\nPoint A\nPoint B\n--- END\n');
                 });
 
                 test('should replace existing RingSense summary', () => {
@@ -212,7 +212,7 @@ describe('callLogComposer', () => {
                         summary: '- A\n- B',
                         logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT
                     });
-                    expect(result).toBe('- RingSense bulleted summary:\n- A\n- B\n--- END\n');
+                    expect(result).toBe('\n- RingSense bulleted summary:\n- A\n- B\n--- END\n');
                 });
             });
         });
@@ -748,7 +748,7 @@ describe('callLogComposer', () => {
                     aiNote: 'AI generated note',
                     logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT
                 });
-                expect(result).toBe('- AI Note:\nAI generated note\n--- END\n');
+                expect(result).toBe('\n- AI Note:\nAI generated note\n--- END\n');
             });
 
             test('should replace existing AI note', () => {
@@ -767,7 +767,7 @@ describe('callLogComposer', () => {
                     aiNote: 'AI note\n\n\n',
                     logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT
                 });
-                expect(result).toBe('- AI Note:\nAI note\n--- END\n');
+                expect(result).toBe('\n- AI Note:\nAI note\n--- END\n');
             });
         });
     });
@@ -810,7 +810,7 @@ describe('callLogComposer', () => {
                     transcript: 'Call transcript',
                     logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT
                 });
-                expect(result).toBe('- Transcript:\nCall transcript\n--- END\n');
+                expect(result).toBe('\n- Transcript:\nCall transcript\n--- END\n');
             });
 
             test('should replace existing transcript', () => {
@@ -955,7 +955,7 @@ describe('callLogComposer', () => {
         };
 
         test('should compose complete call log with all fields in HTML format', async () => {
-            const result = await composeCallLog({
+            const result = composeCallLog({
                 logFormat: LOG_DETAILS_FORMAT_TYPE.HTML,
                 callLog: mockCallLog,
                 contactInfo: mockContactInfo,
@@ -983,7 +983,7 @@ describe('callLogComposer', () => {
         });
 
         test('should compose complete call log with all fields in plain text format', async () => {
-            const result = await composeCallLog({
+            const result = composeCallLog({
                 logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT,
                 callLog: mockCallLog,
                 contactInfo: mockContactInfo,
@@ -1020,7 +1020,7 @@ describe('callLogComposer', () => {
                 }
             };
 
-            const result = await composeCallLog({
+            const result = composeCallLog({
                 logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT,
                 callLog: mockCallLog,
                 contactInfo: mockContactInfo,
@@ -1043,7 +1043,7 @@ describe('callLogComposer', () => {
                 userSettings: {}
             };
 
-            const result = await composeCallLog({
+            const result = composeCallLog({
                 logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT,
                 callLog: mockCallLog,
                 contactInfo: mockContactInfo,
@@ -1063,7 +1063,7 @@ describe('callLogComposer', () => {
 
         test('should handle updating existing body', async () => {
             const existingBody = '- Note: Old note\n- Duration: 30 seconds\n';
-            const result = await composeCallLog({
+            const result = composeCallLog({
                 logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT,
                 existingBody,
                 callLog: mockCallLog,
@@ -1079,7 +1079,7 @@ describe('callLogComposer', () => {
         });
 
         test('should include RingSense fields when provided in HTML format', async () => {
-            const result = await composeCallLog({
+            const result = composeCallLog({
                 logFormat: LOG_DETAILS_FORMAT_TYPE.HTML,
                 callLog: mockCallLog,
                 contactInfo: mockContactInfo,
@@ -1113,7 +1113,7 @@ describe('callLogComposer', () => {
                 }
             };
 
-            const result = await composeCallLog({
+            const result = composeCallLog({
                 logFormat: LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT,
                 callLog: mockCallLog,
                 contactInfo: mockContactInfo,

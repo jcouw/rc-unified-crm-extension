@@ -2,8 +2,9 @@ const { UserModel } = require('../models/userModel');
 const { CallDownListModel } = require('../models/callDownListModel');
 const { Op } = require('sequelize');
 const jwt = require('../lib/jwt');
+const { handleDatabaseError } = require('../lib/errorHandler');
 
-async function schedule({ jwtToken, rcAccessToken, body }) {
+async function schedule({ jwtToken, body }) {
     const unAuthData = jwt.decodeJwt(jwtToken);
     if (!unAuthData?.id) throw new Error('Unauthorized');
     const user = await UserModel.findByPk(unAuthData.id);
@@ -48,7 +49,44 @@ async function markCalled({ jwtToken, id, lastCallAt }) {
     const unAuthData = jwt.decodeJwt(jwtToken);
     if (!unAuthData?.id) throw new Error('Unauthorized');
     const when = lastCallAt ? new Date(lastCallAt) : new Date();
-    const [affected] = await CallDownListModel.update({ status: 'called', lastCallAt: when }, { where: { id, userId: unAuthData.id } });
+    try {
+        const [affected] = await CallDownListModel.update({ status: 'called', lastCallAt: when }, { where: { id, userId: unAuthData.id } });
+        if (!affected) throw new Error('Not found');
+        return { successful: true };
+    }
+    catch (error) {
+        return handleDatabaseError(error, 'Error marking call as called', { id, userId: unAuthData.id });
+    }
+}
+
+async function update({ jwtToken, id, updateData }) {
+    const unAuthData = jwt.decodeJwt(jwtToken);
+    if (!unAuthData?.id) throw new Error('Unauthorized');
+    
+    // Prepare the update object with only valid fields
+    const allowedFields = ['contactId', 'contactType', 'contactName', 'phoneNumber', 'status', 'scheduledAt', 'lastCallAt', 'note'];
+    const updateObject = {};
+    
+    // Filter and prepare update data
+    Object.keys(updateData).forEach(key => {
+        if (allowedFields.includes(key)) {
+            let value = updateData[key];
+            
+            // Handle date fields
+            if ((key === 'scheduledAt' || key === 'lastCallAt') && value) {
+                value = new Date(value);
+            }
+            
+            updateObject[key] = value;
+        }
+    });
+    
+    // If no valid fields to update, throw error
+    if (Object.keys(updateObject).length === 0) {
+        throw new Error('No valid fields to update');
+    }
+    
+    const [affected] = await CallDownListModel.update(updateObject, { where: { id, userId: unAuthData.id } });
     if (!affected) throw new Error('Not found');
     return { successful: true };
 }
@@ -57,4 +95,5 @@ exports.schedule = schedule;
 exports.list = list;
 exports.remove = remove;
 exports.markCalled = markCalled;
+exports.update = update;
 

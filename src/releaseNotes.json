@@ -1,4 +1,172 @@
 {
+    "1.7.14":{
+        "clio": [
+            {
+                "type": "New",
+                "description": "Clio now supports SMS time tracking"
+            }
+        ]
+    },
+    "1.7.12":{
+        "global": [
+            {
+                "type": "New",
+                "description": "A button on Developer settings page to re-initialize user mapping"
+            },
+            {
+                "type": "Better",
+                "description": "Click-to-SMS button is disabled if RingCentral SMS service is not activated"
+            }
+        ]
+    },
+    "1.7.11":{
+        "global": [
+            {
+                "type": "New",
+                "description": "Shared-SMS logging"
+            },
+            {
+                "type": "New",
+                "description": "MCP tools"
+            }
+        ],
+        "netsuite": [
+            {
+                "type": "New",
+                "description": "Netsuite now supports Lead and Prospect"
+            }
+        ]
+    },
+    "1.7.10": {
+        "global": [
+            {
+                "type": "Fix",
+                "description": "Upon completing warm transfer, it opens contact page for a second time"
+            },
+            {
+                "type": "New",
+                "description": "RingCX RingSense call logging event support for Server-side logging"
+            }
+        ]
+    },
+    "1.7.9": {
+        "global": [
+            {
+                "type": "Better",
+                "description": "Contact match speed optimized"
+            },
+            {
+                "type": "Better",
+                "description": "Minor improvements on calldown list"
+            }
+        ],
+        "clio": [
+            {
+                "type": "New",
+                "description": "Clio supports Company as new Contact type"
+            }
+        ],
+        "googleSheets": [
+            {
+                "type": "Fix",
+                "description": "Warning notifications"
+            }
+        ],
+        "netsuite": [
+            {
+                "type": "Fix",
+                "description": "Warning notifications"
+            }
+        ]
+    },
+    "1.7.8": {
+        "global": [
+            {
+                "type": "New",
+                "description": "Error report feature on support page"
+            },
+            {
+                "type": "Better",
+                "description": "Calldown list supports better edit feature"
+            },
+            {
+                "type": "Better",
+                "description": "Connctor selection list can be opened back again"
+            },
+            {
+                "type": "Fix",
+                "description": "Call log record is shown with a wrong number after the call"
+            }
+        ],
+        "googleSheets": [
+            {
+                "type": "New",
+                "description": "Admin now can setup target sheet for all users"
+            }
+        ]
+    },
+    "1.7.7": {
+        "global": [
+            {
+                "type": "New",
+                "description": "Admin report company stats now support grouping"
+            },
+            {
+                "type": "New",
+                "description": "Users can open back the platform selection page from user setting page"
+            }
+        ]
+    },
+    "1.7.6": {
+        "global": [
+            {
+                "type": "Fix",
+                "description": "Duplicated contact pop when complete warm transfer"
+            },
+            {
+                "type": "Fix",
+                "description": "Multi-region auth"
+            }
+        ],
+        "clio": [
+            {
+                "type": "New",
+                "description": "Support to upload image in message as files in Clio"
+            }
+        ]
+    },
+    "1.7.5": {
+        "global": [
+            {
+                "type": "Fix",
+                "description": "A not found issue for call note cache"
+            },
+            {
+                "type": "Better",
+                "description": "Embedded URL list now defaults to all domain. (Meaning quick access button and click-to-dial widget will be rendered on all web pages by default)"
+            }
+        ]
+    },
+    "1.7.4": {
+        "global": [
+            {
+                "type": "New",
+                "description": "Auto restart server-side logging when call log details setting changed"
+            },
+            {
+                "type": "New",
+                "description": "Support to change quick access button size"
+            },
+            {
+                "type": "New",
+                "description": "Support to open log form when during a call"
+            },
+            {
+                "type": "Fix",
+                "description": "An edge case of unwanted call log in call queue scenario"
+            }
+        ]
+    },
     "1.7.3": {
         "global": [
             {
@@ -45,7 +213,123 @@
             }
         ]
     },
-    "1.6.11":{
+    "1.6.20": {
+        "clio": [
+            {
+                "type": "New",
+                "description": "Clio now supports SMS time tracking"
+            }
+        ]
+    },
+    "1.6.19":{
+        "global": [
+            {
+                "type": "New",
+                "description": "A button on Developer settings page to re-initialize user mapping"
+            },
+            {
+                "type": "New",
+                "description": "A banner for official announcement"
+            },
+            {
+                "type": "Better",
+                "description": "Click-to-SMS button is disabled if RingCentral SMS service is not activated"
+            }
+        ]
+    },
+    "1.6.18": {
+        "global": [
+            {
+                "type": "Fix",
+                "description": "Upon completing warm transfer, it opens contact page for a second time"
+            }
+        ]
+    },
+    "1.6.17": {
+        "global": [
+            {
+                "type": "Better",
+                "description": "Contact match speed optimized"
+            }
+        ],
+        "clio": [
+            {
+                "type": "New",
+                "description": "Clio supports Company as new Contact type"
+            }
+        ],
+        "googleSheets": [
+            {
+                "type": "Fix",
+                "description": "Warning notifications"
+            }
+        ],
+        "netsuite": [
+            {
+                "type": "Fix",
+                "description": "Warning notifications"
+            }
+        ]
+    },
+    "1.6.16": {
+        "global": [
+            {
+                "type": "Fix",
+                "description": "Call log record is shown with a wrong number after the call"
+            }
+        ]
+    },
+    "1.6.15": {
+        "global": [
+            {
+                "type": "Fix",
+                "description": "Call log record is shown with a wrong number after the call"
+            }
+        ]
+    },
+    "1.6.14": {
+        "global": [
+            {
+                "type": "Fix",
+                "description": "Warm transfer duplicated contact pop"
+            },
+            {
+                "type": "Beta",
+                "description": "A new BETA is available with cool features. No extra migration needed. [Details](https://appconnect.labs.ringcentral.com/2.0/) [Button]Install 2.0 Beta|https://chromewebstore.google.com/detail/ringcentral-app-connect-b/bgpkbcidaabaeioilooghlffdcmlimgk"
+            }
+        ],
+        "clio": [
+            {
+                "type": "Fix",
+                "description": "Clio authorization issue of mistaking Clio land page as user dashboard page"
+            }
+        ]
+    },
+    "1.6.13": {
+        "global": [
+            {
+                "type": "Fix",
+                "description": "A not found issue for call note cache"
+            },
+            {
+                "type": "Better",
+                "description": "Embedded URL list now defaults to all domain. (Meaning quick access button and click-to-dial widget will be rendered on all web pages by default)"
+            }
+        ]
+    },
+    "1.6.12": {
+        "global": [
+            {
+                "type": "New",
+                "description": "Support RingSense logging with server-side logging"
+            },
+            {
+                "type": "Fix",
+                "description": "An edge case of unwanted call log in call queue scenario"
+            }
+        ]
+    },
+    "1.6.11": {
         "global": [
             {
                 "type": "Fix",

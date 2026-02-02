@@ -8,6 +8,8 @@ const jwt = require('@app-connect/core/lib/jwt');
 const { UserModel } = require('@app-connect/core/models/userModel');
 const { AdminConfigModel } = require('@app-connect/core/models/adminConfigModel');
 const { LOG_DETAILS_FORMAT_TYPE } = require('@app-connect/core/lib/constants');
+const logger = require('@app-connect/core/lib/logger');
+const { handleDatabaseError } = require('@app-connect/core/lib/errorHandler');
 
 function getAuthType() {
     return 'oauth';
@@ -17,13 +19,41 @@ function getLogFormatType() {
     return LOG_DETAILS_FORMAT_TYPE.PLAIN_TEXT;
 }
 
-async function getOauthInfo({ hostname }) {
+/**
+ * Calculates SMS time tracking details including duration and billable status
+ * @param {Object} message - The SMS message object
+ * @param {number} message.typingDurationMs - Time spent typing in milliseconds
+ * @param {Object} user - User object with settings
+ * @returns {Object} Object containing billableTimeSeconds and nonBillable status
+ */
+function calculateSmsTimeEntry({message, user}) {
+    // Convert typing duration from milliseconds to seconds
+    const actualTimeSeconds = (message?.typingDurationMs ?? 0) / 1000;
+    
+    // Get minimum duration setting with fallback to 30 seconds
+    const minimumDuration = parseInt(user.userSettings?.smsTimeTrackingMinimumDuration?.value ?? "30", 10) || 30;
+    
+    // Calculate billable time (actual or minimum, whichever is greater)
+    const billableTimeSeconds = Math.max(actualTimeSeconds, minimumDuration);
+    
+    // Determine if entry should be non-billable (simplified boolean logic)
+    const nonBillable = user.userSettings?.smsTimeTrackingDefaultBillable?.value === 'non-billable';
+    
+    return {
+        billableTimeSeconds,
+        nonBillable,
+        actualTimeSeconds,
+        minimumDuration
+    };
+}
+
+async function getOauthInfo({ hostname, isFromMCP }) {
     if (hostname.startsWith('au.')) {
         return {
             clientId: process.env.CLIO_AU_CLIENT_ID,
             clientSecret: process.env.CLIO_AU_CLIENT_SECRET,
             accessTokenUri: process.env.CLIO_AU_ACCESS_TOKEN_URI,
-            redirectUri: process.env.CLIO_REDIRECT_URI
+            redirectUri: isFromMCP ? process.env.CLIO_REDIRECT_URI_MCP : process.env.CLIO_REDIRECT_URI
         }
     }
     else if (hostname.startsWith('eu.')) {
@@ -31,7 +61,7 @@ async function getOauthInfo({ hostname }) {
             clientId: process.env.CLIO_EU_CLIENT_ID,
             clientSecret: process.env.CLIO_EU_CLIENT_SECRET,
             accessTokenUri: process.env.CLIO_EU_ACCESS_TOKEN_URI,
-            redirectUri: process.env.CLIO_REDIRECT_URI
+            redirectUri: isFromMCP ? process.env.CLIO_REDIRECT_URI_MCP : process.env.CLIO_REDIRECT_URI
         }
     }
     else if (hostname.startsWith('ca.')) {
@@ -39,14 +69,14 @@ async function getOauthInfo({ hostname }) {
             clientId: process.env.CLIO_CA_CLIENT_ID,
             clientSecret: process.env.CLIO_CA_CLIENT_SECRET,
             accessTokenUri: process.env.CLIO_CA_ACCESS_TOKEN_URI,
-            redirectUri: process.env.CLIO_REDIRECT_URI
+            redirectUri: isFromMCP ? process.env.CLIO_REDIRECT_URI_MCP : process.env.CLIO_REDIRECT_URI
         }
     } else {
         return {
             clientId: process.env.CLIO_CLIENT_ID,
             clientSecret: process.env.CLIO_CLIENT_SECRET,
             accessTokenUri: process.env.CLIO_ACCESS_TOKEN_URI,
-            redirectUri: process.env.CLIO_REDIRECT_URI
+            redirectUri: isFromMCP ? process.env.CLIO_REDIRECT_URI_MCP : process.env.CLIO_REDIRECT_URI
         }
     }
 }
@@ -68,6 +98,7 @@ async function getUserInfo({ authHeader, hostname }) {
                 timezoneOffset = moment.tz(timezoneName).utcOffset() / 60;
             }
         } catch (error) {
+            logger.warn('Error getting user info', { stack: error.stack });
             timezoneOffset = 0; // Default to UTC if conversion fails
         }
 
@@ -88,6 +119,7 @@ async function getUserInfo({ authHeader, hostname }) {
         };
     }
     catch (e) {
+        logger.error('Error getting user info', { stack: e.stack });
         return {
             successful: false,
             returnMessage: {
@@ -115,7 +147,7 @@ async function unAuthorize({ user }) {
     const accessTokenParams = new url.URLSearchParams({
         token: user.accessToken
     });
-    const accessTokenRevokeRes = await axios.post(
+    await axios.post(
         revokeUrl,
         accessTokenParams,
         {
@@ -124,7 +156,12 @@ async function unAuthorize({ user }) {
     // remove user credentials
     user.accessToken = '';
     user.refreshToken = '';
-    await user.save();
+    try {
+        await user.save();
+    }
+    catch (error) {
+        return handleDatabaseError(error, 'Error saving user');
+    }
     return {
         returnMessage: {
             messageType: 'success',
@@ -147,7 +184,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
     numberToQueryArray.push(numberFromRc);
     if (overridingFormat !== '') {
         const formats = overridingFormat.split(',');
-        for (var format of formats) {
+        for (const format of formats) {
             const phoneNumberObj = parsePhoneNumber(numberFromRc);
             if (phoneNumberObj.valid) {
                 const phoneNumberWithoutCountryCode = phoneNumberObj.number.significant;
@@ -160,9 +197,9 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
         }
     }
     const matchedContactInfo = [];
-    for (var numberToQuery of numberToQueryArray) {
+    for (const numberToQuery of numberToQueryArray) {
         const personInfo = await axios.get(
-            `https://${user.hostname}/api/v4/contacts.json?type=Person&query=${numberToQuery}&fields=id,name,title,company,updated_at`,
+            `https://${user.hostname}/api/v4/contacts.json?query=${numberToQuery}&fields=type,id,name,updated_at`,
             {
                 headers: { 'Authorization': authHeader }
             });
@@ -172,7 +209,7 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
             ratelimitReset: personInfo.headers['x-ratelimit-reset']
         };
         if (personInfo.data.data.length > 0) {
-            for (var result of personInfo.data.data) {
+            for (const result of personInfo.data.data) {
                 if (matchedContactInfo.some(c => c.id === result.id)) {
                     continue;
                 }
@@ -203,15 +240,17 @@ async function findContact({ user, authHeader, phoneNumber, overridingFormat, is
                 matchedContactInfo.push({
                     id: result.id,
                     name: result.name,
-                    title: result.title ?? "",
-                    company: result.company?.name ?? "",
                     phone: numberFromRc,
+                    type: result.type,
                     mostRecentActivityDate: result.updated_at,
                     additionalInfo: returnedMatters.length > 0 ?
                         {
                             matters: returnedMatters,
                             logTimeEntry: user.userSettings?.clioDefaultTimeEntryTick ?? true,
-                            nonBillable: user.userSettings?.clioDefaultNonBillableTick ?? false
+                            billableStatus: [
+                                { "const": "billable", "title": "Billable" },
+                                { "const": "non-billable", "title": "Non-billable" }
+                              ]
                         } :
                         {
                             logTimeEntry: user.userSettings?.clioDefaultTimeEntryTick ?? true
@@ -240,7 +279,7 @@ async function findContactWithName({ user, authHeader, name }) {
     Clio's contact search functionality works correctly with name-based queries, including first name, last name, and full name. 
     It handles all variations without requiring the query to be split
     */
-    const personInfo = await axios.get(`https://${user.hostname}/api/v4/contacts.json?type=Person&query=${name}&fields=id,name,title,company,primary_phone_number`, {
+    const personInfo = await axios.get(`https://${user.hostname}/api/v4/contacts.json?query=${name}&fields=id,name,primary_phone_number`, {
         headers: { 'Authorization': authHeader }
     });
     extraDataTracking = {
@@ -249,7 +288,7 @@ async function findContactWithName({ user, authHeader, name }) {
         ratelimitReset: personInfo.headers['x-ratelimit-reset']
     };
     if (personInfo.data.data.length > 0) {
-        for (var result of personInfo.data.data) {
+        for (const result of personInfo.data.data) {
             const matterInfo = await axios.get(
                 `https://${user.hostname}/api/v4/matters.json?client_id=${result.id}&fields=id,display_number,description,status`,
                 {
@@ -275,15 +314,16 @@ async function findContactWithName({ user, authHeader, name }) {
             matchedContactInfo.push({
                 id: result.id,
                 name: result.name,
-                title: result.title ?? "",
                 type: 'contact',
-                company: result.company?.name ?? "",
                 phone: result.primary_phone_number ?? "",
                 additionalInfo: returnedMatters.length > 0 ?
                     {
                         matters: returnedMatters,
                         logTimeEntry: user.userSettings?.clioDefaultTimeEntryTick ?? true,
-                        nonBillable: user.userSettings?.clioDefaultNonBillableTick ?? false
+                        billableStatus: [
+                            { "const": "billable", "title": "Billable" },
+                            { "const": "non-billable", "title": "Non-billable" }
+                          ]
                     } :
                     {
                         logTimeEntry: user.userSettings?.clioDefaultTimeEntryTick ?? true
@@ -299,14 +339,14 @@ async function findContactWithName({ user, authHeader, name }) {
     }
 }
 
-async function createContact({ user, authHeader, phoneNumber, newContactName }) {
+async function createContact({ user, authHeader, phoneNumber, newContactName, newContactType = 'Person' }) {
     let extraDataTracking = {};
     const personInfo = await axios.post(
         `https://${user.hostname}/api/v4/contacts.json`,
         {
             data: {
                 name: newContactName,
-                type: 'Person',
+                type: newContactType,
                 phone_numbers: [
                     {
                         name: "Work",
@@ -358,7 +398,7 @@ async function getUserList({ user, authHeader }) {
     return userList;
 }
 
-async function createCallLog({ user, contactInfo, authHeader, callLog, note, additionalSubmission, aiNote, transcript, composedLogDetails, hashedAccountId }) {
+async function createCallLog({ user, contactInfo, authHeader, callLog, additionalSubmission, aiNote, transcript, composedLogDetails, hashedAccountId }) {
     const sender = callLog.direction === 'Outbound' ?
         {
             id: user.id.split('-')[0],
@@ -380,7 +420,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
 
     let assigneeId = null;
     if (additionalSubmission?.isAssignedToUser) {
-        if (additionalSubmission.adminAssignedUserToken) {
+        if (additionalSubmission?.adminAssignedUserToken) {
             try {
                 const unAuthData = jwt.decodeJwt(additionalSubmission.adminAssignedUserToken);
                 const assigneeUser = await UserModel.findByPk(unAuthData.id);
@@ -389,7 +429,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
                 }
             }
             catch (e) {
-                console.log('Error decoding admin assigned user token', e);
+                logger.error('Error decoding admin assigned user token', { stack: e.stack });
             }
         }
 
@@ -443,6 +483,22 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
             headers: { 'Authorization': authHeader }
         });
     const communicationId = addLogRes.data.data.id;
+   // const nonBillable = additionalSubmission?.nonBillable !== undefined ? additionalSubmission.nonBillable : (user.userSettings?.clioDefaultNonBillableTick?.value ?? true);
+    // Determine billable status with clear precedence order
+    let nonBillable;
+    
+    if (additionalSubmission?.nonBillable !== undefined) {
+      // Use explicit nonBillable value if provided
+      nonBillable = additionalSubmission.nonBillable;
+    } else if (additionalSubmission?.billableStatus !== undefined) {
+      // Convert billableStatus to nonBillable (inverse relationship)
+      nonBillable = additionalSubmission.billableStatus !== 'billable';
+    } else {
+      // Fall back to user settings
+      const defaultSetting = user.userSettings?.clioDefaultNonBillableTick?.value;
+      nonBillable = !(defaultSetting === 'billable' || defaultSetting === false);
+    }
+
     const addTimerBody = {
         data: {
             communication: {
@@ -451,7 +507,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
             quantity: callLog.duration,
             date: moment(callLog.startTime).toISOString(),
             type: 'TimeEntry',
-            non_billable: additionalSubmission.nonBillable,
+            non_billable: nonBillable,
             note: composedLogDetails
         }
     }
@@ -477,7 +533,7 @@ async function createCallLog({ user, contactInfo, authHeader, callLog, note, add
     };
 }
 
-async function updateCallLog({ user, existingCallLog, authHeader, recordingLink, subject, note, startTime, duration, result, aiNote, transcript, additionalSubmission, composedLogDetails, existingCallLogDetails, hashedAccountId }) {
+async function updateCallLog({ user, existingCallLog, authHeader, subject, startTime, duration, additionalSubmission, composedLogDetails, existingCallLogDetails, hashedAccountId }) {
     const existingClioLogId = existingCallLog.thirdPartyLogId.split('.')[0];
     let extraDataTracking = {};
     // Use passed existingCallLogDetails to avoid duplicate API call
@@ -521,7 +577,7 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
             if (startTime) {
                 patchTimerBody.data.date = moment(startTime).toISOString();
             }
-            const patchTimerRes = await axios.patch(
+            await axios.patch(
                 `https://${user.hostname}/api/v4/activities/${getTimerRes.data.data[0].id}.json`,
                 patchTimerBody,
                 {
@@ -604,8 +660,10 @@ async function upsertCallDisposition({ user, existingCallLog, authHeader, dispos
     }
 }
 
-async function createMessageLog({ user, contactInfo, authHeader, message, additionalSubmission, recordingLink, faxDocLink, faxDownloadLink, imageLink, videoLink }) {
+async function createMessageLog({ user, contactInfo, sharedSMSLogContent, authHeader, message, additionalSubmission, recordingLink, faxDocLink, faxDownloadLink, imageLink, imageDownloadLink, imageContentType, videoLink }) {
     let extraDataTracking = {};
+    let logBody = '';
+    let logSubject = '';
     const sender =
     {
         id: contactInfo.id,
@@ -622,117 +680,185 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
         }
     });
     const userName = userInfoResponse.data.data.name;
-    let messageType = 'SMS';
-    let messageSubject = message.subject;
-    if (recordingLink) {
-        messageType = 'Voicemail';
+    // Case: shared SMS
+    if (sharedSMSLogContent?.subject && sharedSMSLogContent?.body) {
+        logSubject = sharedSMSLogContent.subject;
+        logBody = sharedSMSLogContent.body;
     }
-    else if (faxDocLink) {
-        messageType = 'Fax';
-    }
-    else if (imageLink) {
-        messageType = 'Image';
-        messageSubject = `Image sent from ${contactInfo.name} - ${moment(message.creationTime).format('MM/DD/YYYY')}\n[Link]: ${imageLink}`;
-    }
-    else if (videoLink) {
-        messageType = 'Video';
-        messageSubject = `Video sent from ${contactInfo.name} - ${moment(message.creationTime).format('MM/DD/YYYY')}\n[Link]: ${videoLink}`;
-    }
-    let logBody = '';
-    let logSubject = '';
-    switch (messageType) {
-        case 'SMS':
-        case 'Image':
-        case 'Video':
-            logSubject = `SMS conversation with ${contactInfo.name} - ${moment(message.creationTime).format('MM/DD/YYYY')}`;
-            logBody =
-                '\nConversation summary\n' +
-                `${moment(message.creationTime).format('dddd, MMMM DD, YYYY')}\n` +
-                'Participants\n' +
-                `    ${userName}\n` +
-                `    ${contactInfo.name}\n` +
-                '\nConversation(1 messages)\n' +
-                'BEGIN\n' +
-                '------------\n' +
-                `${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo.phoneNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}\n` +
-                `${messageSubject}\n` +
-                '------------\n' +
-                'END\n\n' +
-                '--- Created via RingCentral App Connect';
-            break;
-        case 'Voicemail':
-            logSubject = `Voicemail left by ${contactInfo.name} - ${moment(message.creationTime).format('MM/DD/YYYY')}`;
-            logBody = `Voicemail recording link: ${recordingLink} \n\n--- Created via RingCentral App Connect`;
-            break;
-        case 'Fax':
-            try {
-                // download media from server mediaLink (application/pdf) - do this first because RC Access Token might expire during the process
-                const mediaRes = await axios.get(faxDownloadLink, { responseType: 'arraybuffer' });
-                const documentUploadIdResponse = await axios.post(`
+    // Case: normal SMS
+    else {
+        let messageType = 'SMS';
+        let messageSubject = message.subject;
+        if (recordingLink) {
+            messageType = 'Voicemail';
+        }
+        else if (faxDocLink) {
+            messageType = 'Fax';
+        }
+        else if (imageLink) {
+            messageType = 'Image';
+            messageSubject = `Image sent from ${contactInfo.name} - ${moment(message.creationTime).format('MM/DD/YYYY')}\n[Link]: ${imageLink}`;
+        }
+        else if (videoLink) {
+            messageType = 'Video';
+            messageSubject = `Video sent from ${contactInfo.name} - ${moment(message.creationTime).format('MM/DD/YYYY')}\n[Link]: ${videoLink}`;
+        }
+        switch (messageType) {
+            case 'SMS':
+            case 'Video':
+                logSubject = `SMS conversation with ${contactInfo.name} - ${moment(message.creationTime).format('MM/DD/YYYY')}`;
+                logBody =
+                    '\nConversation summary\n' +
+                    `${moment(message.creationTime).format('dddd, MMMM DD, YYYY')}\n` +
+                    'Participants\n' +
+                    `    ${userName}\n` +
+                    `    ${contactInfo.name}\n` +
+                    '\nConversation(1 messages)\n' +
+                    'BEGIN\n' +
+                    '------------\n' +
+                    `${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo.phoneNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}\n` +
+                    `${messageSubject}\n` +
+                    '------------\n' +
+                    'END\n\n' +
+                    '--- Created via RingCentral App Connect';
+                break;
+            case 'Voicemail':
+                logSubject = `Voicemail left by ${contactInfo.name} - ${moment(message.creationTime).format('MM/DD/YYYY')}`;
+                logBody = `Voicemail recording link: ${recordingLink} \n\n--- Created via RingCentral App Connect`;
+                break;
+            case 'Image':
+                try {
+                    // download media from server mediaLink (image/jpeg or image/png) - do this first because RC Access Token might expire during the process
+                    const mediaRes = await axios.get(imageDownloadLink, { responseType: 'arraybuffer' });
+                    const documentUploadIdResponse = await axios.post(`
                     https://${user.hostname}/api/v4/documents?fields=id,latest_document_version{uuid,put_url,put_headers}`,
-                    {
-                        data: {
-                            name: `${message.direction} Fax - ${contactInfo.name} - ${moment(message.creationTime).format('MM/DD/YYYY')}.pdf`,
-                            parent: {
-                                id: additionalSubmission.matters ?? contactInfo.id,
-                                type: additionalSubmission.matters ? 'Matter' : 'Contact'
-                            },
-                            received_at: moment(message.creationTime).toISOString()
+                        {
+                            data: {
+                                name: `${message.direction} Image Message - ${contactInfo.name} - ${moment(message.creationTime).format('MM/DD/YYYY')}.${imageContentType.split('/')[1]}`,
+                                parent: {
+                                    id: additionalSubmission.matters ?? contactInfo.id,
+                                    type: additionalSubmission.matters ? 'Matter' : 'Contact'
+                                },
+                                received_at: moment(message.creationTime).toISOString()
+                            }
+                        },
+                        {
+                            headers: { 'Authorization': authHeader }
                         }
-                    },
-                    {
-                        headers: { 'Authorization': authHeader }
-                    }
-                )
-                const documentId = documentUploadIdResponse.data.data.id;
-                const uuid = documentUploadIdResponse.data.data.latest_document_version.uuid;
-                const putUrl = documentUploadIdResponse.data.data.latest_document_version.put_url;
-                const putHeaders = documentUploadIdResponse.data.data.latest_document_version.put_headers.reduce((acc, header) => {
-                    acc[header.name] = header.value;
-                    return acc;
-                }, {});
-                const putDocumentResponse = await axios.put(
-                    putUrl,
-                    mediaRes.data,
-                    {
-                        headers: {
-                            'Connection': 'keep-alive',
-                            ...putHeaders
+                    )
+                    const documentId = documentUploadIdResponse.data.data.id;
+                    const uuid = documentUploadIdResponse.data.data.latest_document_version.uuid;
+                    const putUrl = documentUploadIdResponse.data.data.latest_document_version.put_url;
+                    const putHeaders = documentUploadIdResponse.data.data.latest_document_version.put_headers.reduce((acc, header) => {
+                        acc[header.name] = header.value;
+                        return acc;
+                    }, {});
+                    const putDocumentResponse = await axios.put(
+                        putUrl,
+                        mediaRes.data,
+                        {
+                            headers: {
+                                'Connection': 'keep-alive',
+                                ...putHeaders
+                            }
                         }
-                    }
-                );
-                const patchDocResponse = await axios.patch(
-                    `https://${user.hostname}/api/v4/documents/${documentId}?fields=id,latest_document_version{fully_uploaded}`,
-                    {
-                        data: {
-                            uuid,
-                            fully_uploaded: true
+                    );
+                    const patchDocResponse = await axios.patch(
+                        `https://${user.hostname}/api/v4/documents/${documentId}?fields=id,latest_document_version{fully_uploaded}`,
+                        {
+                            data: {
+                                uuid,
+                                fully_uploaded: true
+                            }
+                        },
+                        {
+                            headers: { 'Authorization': authHeader }
                         }
-                    },
-                    {
-                        headers: { 'Authorization': authHeader }
+                    )
+                    logSubject = `Image document sent from ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
+                    if (patchDocResponse.data.data.latest_document_version.fully_uploaded) {
+                        logBody = `Image uploaded to Clio successfully.\nImage document link: https://${user.hostname}/nc/#/documents/${documentId}/details\nLocation: ${message.direction === 'Inbound' ? message.from.location : message.to[0].location} \n\n--- Created via RingCentral App Connect`;
                     }
-                )
-                logSubject = `Fax document sent from ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
-                if (patchDocResponse.data.data.latest_document_version.fully_uploaded) {
-                    logBody = `Fax uploaded to Clio successfully.\nFax Status: ${message.messageStatus}\nPage count: ${message.faxPageCount}\nFax document link: https://${user.hostname}/nc/#/documents/${documentId}/details\nLocation: ${message.direction === 'Inbound' ? message.from.location : message.to[0].location} \n\n--- Created via RingCentral App Connect`;
+                    else {
+                        logBody = `Image failed to be uploaded to Clio.\nImage document link: ${imageDownloadLink} \n\n--- Created via RingCentral App Connect`;
+                    }
                 }
-                else {
+                catch (e) {
+                    logSubject = `Image document sent from ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
+                    logBody = `Image failed to be uploaded to Clio.\nImage document link: ${imageDownloadLink} \n\n--- Created via RingCentral App Connect`;
+                }
+                break;
+            case 'Fax':
+                try {
+                    // download media from server mediaLink (application/pdf) - do this first because RC Access Token might expire during the process
+                    const mediaRes = await axios.get(faxDownloadLink, { responseType: 'arraybuffer' });
+                    const documentUploadIdResponse = await axios.post(`
+                    https://${user.hostname}/api/v4/documents?fields=id,latest_document_version{uuid,put_url,put_headers}`,
+                        {
+                            data: {
+                                name: `${message.direction} Fax - ${contactInfo.name} - ${moment(message.creationTime).format('MM/DD/YYYY')}.pdf`,
+                                parent: {
+                                    id: additionalSubmission.matters ?? contactInfo.id,
+                                    type: additionalSubmission.matters ? 'Matter' : 'Contact'
+                                },
+                                received_at: moment(message.creationTime).toISOString()
+                            }
+                        },
+                        {
+                            headers: { 'Authorization': authHeader }
+                        }
+                    )
+                    const documentId = documentUploadIdResponse.data.data.id;
+                    const uuid = documentUploadIdResponse.data.data.latest_document_version.uuid;
+                    const putUrl = documentUploadIdResponse.data.data.latest_document_version.put_url;
+                    const putHeaders = documentUploadIdResponse.data.data.latest_document_version.put_headers.reduce((acc, header) => {
+                        acc[header.name] = header.value;
+                        return acc;
+                    }, {});
+                    const putDocumentResponse = await axios.put(
+                        putUrl,
+                        mediaRes.data,
+                        {
+                            headers: {
+                                'Connection': 'keep-alive',
+                                ...putHeaders
+                            }
+                        }
+                    );
+                    const patchDocResponse = await axios.patch(
+                        `https://${user.hostname}/api/v4/documents/${documentId}?fields=id,latest_document_version{fully_uploaded}`,
+                        {
+                            data: {
+                                uuid,
+                                fully_uploaded: true
+                            }
+                        },
+                        {
+                            headers: { 'Authorization': authHeader }
+                        }
+                    )
+                    logSubject = `Fax document sent from ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
+                    if (patchDocResponse.data.data.latest_document_version.fully_uploaded) {
+                        logBody = `Fax uploaded to Clio successfully.\nFax Status: ${message.messageStatus}\nPage count: ${message.faxPageCount}\nFax document link: https://${user.hostname}/nc/#/documents/${documentId}/details\nLocation: ${message.direction === 'Inbound' ? message.from.location : message.to[0].location} \n\n--- Created via RingCentral App Connect`;
+                    }
+                    else {
+                        logBody = `Fax failed to be uploaded to Clio.\nFax document link: ${faxDocLink} \n\n--- Created via RingCentral App Connect`;
+                    }
+                }
+                catch (e) {
+                    logger.error('Error uploading fax document', { stack: e.stack });
+                    logSubject = `Fax document sent from ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
                     logBody = `Fax failed to be uploaded to Clio.\nFax document link: ${faxDocLink} \n\n--- Created via RingCentral App Connect`;
                 }
-            }
-            catch (e) {
-                logSubject = `Fax document sent from ${contactInfo.name} - ${moment(message.creationTime).format('YY/MM/DD')}`;
-                logBody = `Fax failed to be uploaded to Clio.\nFax document link: ${faxDocLink} \n\n--- Created via RingCentral App Connect`;
-            }
-            break;
+                break;
+        }
     }
     const postBody = {
         data: {
             subject: logSubject,
             body: logBody,
             type: 'PhoneCommunication',
-            received_at: moment(message.creationTime).toISOString(),
+            received_at: sharedSMSLogContent ? moment(sharedSMSLogContent.conversationCreatedDate).toISOString() : moment(message.creationTime).toISOString(),
             senders: [sender],
             receivers: [receiver],
             notification_event_subscribers: [
@@ -751,11 +877,47 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
         {
             headers: { 'Authorization': authHeader }
         });
+    // Create SMS time entry if SMS time tracking is enabled
+    if (user.userSettings?.smsTimeTrackingEnabled?.value && message.direction === 'Outbound') {
+        try {
+            const { billableTimeSeconds, nonBillable } = calculateSmsTimeEntry({message, user});
+            const timeEntryBody = {
+                data: {
+                    type: "TimeEntry",
+                    date: moment(message.creationTime).format('YYYY-MM-DD'),
+                    quantity: billableTimeSeconds,
+                    note: `SMS message with ${contactInfo.name} sent on ${moment(message.creationTime).format('MM/DD/YYYY')} at ${moment(message.creationTime).format('HH:mm:ss')}`,
+                    communication: {
+                        id: addLogRes.data.data.id
+                    },
+                     non_billable: nonBillable
+                }
+            };
+
+            // Add matter to time entry if available
+            if (additionalSubmission?.matters) {
+                timeEntryBody.data.matter = { id: additionalSubmission.matters };
+            }
+
+            const timeEntryRes = await axios.post(
+                `https://${user.hostname}/api/v4/activities.json`,
+                timeEntryBody,
+                {
+                    headers: { 'Authorization': authHeader }
+                });
+
+        } catch (timeEntryError) {
+            console.error('Failed to create SMS time entry:', timeEntryError.message);
+            // Don't fail the main function if time entry creation fails
+        }
+    }
     extraDataTracking = {
         ratelimitRemaining: addLogRes.headers['x-ratelimit-remaining'],
         ratelimitAmount: addLogRes.headers['x-ratelimit-limit'],
         ratelimitReset: addLogRes.headers['x-ratelimit-reset']
     };
+
+
     return {
         logId: addLogRes.data.data.id,
         returnMessage: {
@@ -767,40 +929,46 @@ async function createMessageLog({ user, contactInfo, authHeader, message, additi
     };
 }
 
-async function updateMessageLog({ user, contactInfo, existingMessageLog, message, authHeader, imageLink, videoLink }) {
+async function updateMessageLog({ user, contactInfo, sharedSMSLogContent, existingMessageLog, message, authHeader, imageLink, videoLink, additionalSubmission }) {
     let extraDataTracking = {};
-    const existingClioLogId = existingMessageLog.thirdPartyLogId.split('.')[0];
-    const getLogRes = await axios.get(
-        `https://${user.hostname}/api/v4/communications/${existingClioLogId}.json?fields=body`,
-        {
-            headers: { 'Authorization': authHeader }
-        });
-    const userInfoResponse = await axios.get(`https://${user.hostname}/api/v4/users/who_am_i.json?fields=name`, {
-        headers: {
-            'Authorization': authHeader
-        }
-    });
-    const userName = userInfoResponse.data.data.name;
-    let logBody = getLogRes.data.data.body;
-    let messageSubject = message.subject;
-    if (imageLink) {
-        messageSubject = `Image sent from ${contactInfo.name} - ${moment(message.creationTime).format('MM/DD/YYYY')}\n[Link]: ${imageLink}`;
-    }
-    else if (videoLink) {
-        messageSubject = `Video sent from ${contactInfo.name} - ${moment(message.creationTime).format('MM/DD/YYYY')}\n[Link]: ${videoLink}`;
-    }
+    let logBody = '';
     let patchBody = {};
-    const originalNote = logBody.split('BEGIN\n------------\n')[1];
-    const endMarker = '------------\nEND';
-    const newMessageLog =
-        `${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo.phoneNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}\n` +
-        `${messageSubject}\n\n`;
-    logBody = logBody.replace(endMarker, `${newMessageLog}${endMarker}`);
+    const existingClioLogId = existingMessageLog.thirdPartyLogId.split('.')[0];
+    // Case: shared SMS
+    if (sharedSMSLogContent?.body) {
+        logBody = sharedSMSLogContent.body;
+    }
+    else {
+        const getLogRes = await axios.get(
+            `https://${user.hostname}/api/v4/communications/${existingClioLogId}.json?fields=body`,
+            {
+                headers: { 'Authorization': authHeader }
+            });
+        const userInfoResponse = await axios.get(`https://${user.hostname}/api/v4/users/who_am_i.json?fields=name`, {
+            headers: {
+                'Authorization': authHeader
+            }
+        });
+        const userName = userInfoResponse.data.data.name;
+        logBody = getLogRes.data.data.body;
+        let messageSubject = message.subject;
+        if (imageLink) {
+            messageSubject = `Image sent from ${contactInfo.name} - ${moment(message.creationTime).format('MM/DD/YYYY')}\n[Link]: ${imageLink}`;
+        }
+        else if (videoLink) {
+            messageSubject = `Video sent from ${contactInfo.name} - ${moment(message.creationTime).format('MM/DD/YYYY')}\n[Link]: ${videoLink}`;
+        }
+        const originalNote = logBody.split('BEGIN\n------------\n')[1];
+        const endMarker = '------------\nEND';
+        const newMessageLog =
+            `${message.direction === 'Inbound' ? `${contactInfo.name} (${contactInfo.phoneNumber})` : userName} ${moment(message.creationTime).format('hh:mm A')}\n` +
+            `${messageSubject}\n\n`;
+        logBody = logBody.replace(endMarker, `${newMessageLog}${endMarker}`);
 
-    const regex = RegExp('Conversation.(.*) messages.');
-    const matchResult = regex.exec(logBody);
-    logBody = logBody.replace(matchResult[0], `Conversation(${parseInt(matchResult[1]) + 1} messages)`);
-
+        const regex = RegExp('Conversation.(.*) messages.');
+        const matchResult = regex.exec(logBody);
+        logBody = logBody.replace(matchResult[0], `Conversation(${parseInt(matchResult[1]) + 1} messages)`);
+    }
     patchBody = {
         data: {
             body: logBody
@@ -812,12 +980,46 @@ async function updateMessageLog({ user, contactInfo, existingMessageLog, message
         {
             headers: { 'Authorization': authHeader }
         });
+    // Create SMS time entry if SMS time tracking is enabled
+    if (user.userSettings?.smsTimeTrackingEnabled?.value && message.direction === 'Outbound') {
+        try {
+            const { billableTimeSeconds, nonBillable } = calculateSmsTimeEntry({message, user});
+            const timeEntryBody = {
+                data: {
+                    type: "TimeEntry",
+                    date: moment(message.creationTime).format('YYYY-MM-DD'),
+                    quantity: billableTimeSeconds,
+                    note: `SMS message with ${contactInfo.name} sent on ${moment(message.creationTime).format('MM/DD/YYYY')} at ${moment(message.creationTime).format('HH:mm:ss')}`,
+                    communication: {
+                        id: existingClioLogId
+                    },
+                     non_billable: nonBillable
+                }
+            };
 
+            // Add matter to time entry if available
+            if (additionalSubmission.matters) {
+                timeEntryBody.data.matter = { id: additionalSubmission.matters };
+            }
+
+            const timeEntryRes = await axios.post(
+                `https://${user.hostname}/api/v4/activities.json`,
+                timeEntryBody,
+                {
+                    headers: { 'Authorization': authHeader }
+                });
+        } catch (timeEntryError) {
+            console.error('Failed to create SMS time entry:', timeEntryError.message);
+            // Don't fail the main function if time entry creation fails
+        }
+    }
     extraDataTracking = {
         ratelimitRemaining: patchLogRes.headers['x-ratelimit-remaining'],
         ratelimitAmount: patchLogRes.headers['x-ratelimit-limit'],
         ratelimitReset: patchLogRes.headers['x-ratelimit-reset']
     };
+
+
     return {
         extraDataTracking
     }

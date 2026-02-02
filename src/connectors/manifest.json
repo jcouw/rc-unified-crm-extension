@@ -413,7 +413,7 @@
           }
         ]
       },
-      "urlIdentifier": "*.clio.com",
+      "urlIdentifier": "*app.clio.com",
       "developer": {
         "name": "RingCentral Labs",
         "url": "https://labs.ringcentral.com"
@@ -424,6 +424,7 @@
       "getSupportUrl": "https://community.ringcentral.com/topic/new?fid=22",
       "writeReviewUrl": "https://chromewebstore.google.com/detail/ringcentral-crm-extension/kkhkjhafgdlihndcbnebljipgkandkhh/reviews",
       "name": "clio",
+      "trackSmsTypingDuration": true,
       "embedUrls": [
         "https://*.clio.com/*"
       ],
@@ -432,6 +433,16 @@
         "useAdminAssignedUserToken": true,
         "enableUserMapping": true
       },
+      "contactTypes": [
+        {
+          "display": "Person",
+          "value": "Person"
+        },
+        {
+          "display": "Company",
+          "value": "Company"
+        }
+      ],
       "displayName": "Clio",
       "auth": {
         "type": "oauth",
@@ -452,10 +463,52 @@
           "items": [
             {
               "id": "clioDefaultNonBillableTick",
+              "type": "option",
+              "name": "Default phone call billable status",
+              "helper": "Set whether time entries relating to phone calls are billable or not by default",
+              "defaultValue": "billable",
+              "options": [
+                {
+                  "id": "billable",
+                  "name": "Billable"
+                },
+                {
+                  "id": "non-billable",
+                  "name": "Non-billable"
+                }
+              ]
+            },
+            {
+              "id": "smsTimeTrackingDefaultBillable",
+              "type": "option",
+              "name": "Default SMS billable status",
+              "helper": "Set whether time entries relating to SMS correspondence are billable or not by default",
+              "defaultValue": "billable",
+              "options": [
+                {
+                  "id": "billable",
+                  "name": "Billable"
+                },
+                {
+                  "id": "non-billable",
+                  "name": "Non-billable"
+                }
+              ]
+            },
+            {
+              "id": "smsTimeTrackingEnabled",
               "type": "boolean",
-              "name": "Non-billable",
-              "description": "Tick this option to mark the call as non-billable by default",
+              "name": "SMS time tracking",
+              "description": "Track and record time spent communicating over SMS",
               "defaultValue": false
+            },
+            { 
+              "id": "smsTimeTrackingMinimumDuration",
+              "type": "inputField",
+              "name": "Minimum SMS billable duration",
+              "helper": "Set the minimum time duration (in seconds) for SMS correspondence (e.g., 30 for 30 seconds, 360 for 6 minutes)",
+              "placeholder": "30",
+              "defaultValue": "30"
             },
             {
               "id": "clioSeeClosedMatters",
@@ -464,6 +517,7 @@
               "description": "Show closed matters in the matter selection dropdown",
               "defaultValue": false
             }
+            
           ]
         }
       ],
@@ -477,18 +531,21 @@
               "contactDependent": true
             },
             {
-              "const": "nonBillable",
-              "title": "Non-billable",
-              "type": "checkbox",
+              "const": "billableStatus",
+              "title": "Billable status",
+              "type": "selection",
               "contactDependent": false,
+              "required": false,
+              "description": "Set whether time entries relating to phone calls are billable or not by default",
+              "includeNoneOption":false,
+              "options": [
+                { "const": "billable", "title": "Billable" },
+                { "const": "non-billable", "title": "Non-billable" }
+              ],
               "defaultSettingId": "clioOptions",
               "defaultSettingValues": {
-                "inboundCall": {
-                  "settingId": "clioDefaultNonBillableTick"
-                },
-                "outboundCall": {
-                  "settingId": "clioDefaultNonBillableTick"
-                }
+                "inboundCall": { "settingId": "clioDefaultNonBillableTick" },
+                "outboundCall": { "settingId": "clioDefaultNonBillableTick" }
               }
             }
           ]
@@ -1392,6 +1449,14 @@
         {
           "display": "Vendor",
           "value": "vendor"
+        },
+        {
+          "display": "Lead",
+          "value": "lead"
+        },
+        {
+          "display": "Prospect",
+          "value": "prospect"
         }
       ],
       "page": {
@@ -1854,5 +1919,5 @@
       ]
     }
   },
-  "version": "1.6.10"
+  "version": "1.6.20"
 }

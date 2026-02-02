@@ -40,13 +40,17 @@ theme:
     code: Roboto Mono
 
 plugins:
+#  - pdf-export:
+#      combined: true
   - search:
       separator: '[\s\-,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])'
-  - badges
+#  - badges
   - exclude:
       regex:
         - '^\.#.*'
         - '.*\.\#.*$'
+  - print-site
+
 hooks:
   - scripts/mkdocs/hooks/shortcodes.py
 
@@ -60,10 +64,6 @@ extra_css:
   - extra.css
 extra_javascript:
   - extra.js
-
-#plugins:
-#  pdf-export:
-#    combined: true
 
 markdown_extensions:
   - attr_list
@@ -100,15 +100,18 @@ nav:
    - 'Redtail CRM': crm/redtail.md
    - 'ServiceNow': crm/servicenow.md
 - 'User guide':
-  - 'Using App Connect': 
-    - 'Accessing App Connect': users/access.md
-    - 'Click-to-dial': users/making-calls.md
-    - 'Screen-pop': users/screen-pop.md
+  - 'Introduction': users/access.md
+  - 'App Connect features': 
     - 'AI Assistant': users/ai.md
-    - 'Sending SMS': users/sms.md
+    - 'Call-down lists (2.0)': users/calldown-lists.md
+    - 'Call monitoring (2.0)': users/hud.md
+    - 'Click-to-dial': users/making-calls.md
     - 'Metrics and reports': users/user-report.md
     - 'Presence and status': users/presence.md
-    - 'Call-down lists': users/calldown-lists.md
+    - 'RingCX support (experimental)': users/ringcx.md
+    - 'Screen-pop': users/screen-pop.md
+    - 'Sending SMS': users/sms.md
+    - 'Voicemail drop (2.0)': users/voicemail-drop.md
   - 'Call Logging':
     - 'Logging overview': users/logging.md
     - 'Resolving logging conflicts': users/logging-conflicts.md
@@ -118,7 +121,7 @@ nav:
     - 'Becoming an admin': users/admin.md
     - 'Managed settings': users/managed-settings.md
     - 'Server-side call logging': users/server-side-logging.md
-    - 'RingSense logging (new)': users/ringsense.md
+    - 'AI Conversation Expert (ACE) logging': users/ace.md
   - 'User settings':
     - 'Overview': users/settings-sync.md
     - 'Audio input/output': users/audio.md
@@ -135,7 +138,6 @@ nav:
   - 'Getting started': developers/getting-started.md
   - 'Developer Console': https://appconnect.labs.ringcentral.com/console
   - 'Is your CRM compatible?': developers/proprietary-crm.md
-#  - 'Call log composer': developers/call-log-composer.md
   - 'Connector': 
     - 'Authorization': developers/auth.md
     - 'Manifest':
@@ -158,6 +160,7 @@ nav:
       - 'createMessageLog': developers/interfaces/createMessageLog.md
       - 'createContact': developers/interfaces/createContact.md
       - 'getAuthType': developers/interfaces/getAuthType.md
+      - 'getBasicAuth': developers/interfaces/getBasicAuth.md
       - 'getCallLog': developers/interfaces/getCallLog.md
       - 'getLicenseStatus': developers/interfaces/getLicenseStatus.md
       - 'getLogFormatType': developers/interfaces/getLogFormatType.md
@@ -187,4 +190,5 @@ nav:
   - 'Troubleshooting': support.md
   - 'Submitting bug reports': collect-logs.md
   - 'Build a CRM connector': build.md
+  - 'Data sharing': data-sharing.md
   - 'Release notes': release-notes.md

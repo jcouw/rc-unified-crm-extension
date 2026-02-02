@@ -4,7 +4,8 @@ const moment = require('moment');
 const axios = require('axios');
 const { UserModel } = require('../models/userModel');
 const connectorRegistry = require('../connector/registry');
-
+const logger = require('./logger');
+const { handleDatabaseError } = require('./errorHandler');
 // oauthApp strategy is default to 'code' which use credentials to get accessCode, then exchange for accessToken and refreshToken.
 // To change to other strategies, please refer to: https://github.com/mulesoft-labs/js-client-oauth2
 function getOAuthApp({ clientId, clientSecret, accessTokenUri, authorizationUri, redirectUri, scopes }) {
@@ -41,13 +42,13 @@ async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 20)
                 newLock = await Lock.create(
                     {
                         userId: user.id,
-                        ttl: now.unix() + 30
+                        ttl: now.unix() + tokenLockTimeout
                     },
                     {
                         overwrite: false
                     }
                 );
-                console.log('lock created')
+                logger.info('lock created')
             } catch (e) {
                 // If creation failed due to condition, a lock exists
                 if (e.name === 'ConditionalCheckFailedException' || e.__type === 'com.amazonaws.dynamodb.v20120810#ConditionalCheckFailedException') {
@@ -55,12 +56,12 @@ async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 20)
                     if (!!lock?.ttl && moment(lock.ttl).unix() < now.unix()) {
                         // Try to delete expired lock and create a new one atomically
                         try {
-                            console.log('lock expired.')
+                            logger.info('lock expired.')
                             await lock.delete();
                             newLock = await Lock.create(
                                 {
                                     userId: user.id,
-                                    ttl: now.unix() + 30
+                                    ttl: now.unix() + tokenLockTimeout
                                 },
                                 {
                                     overwrite: false
@@ -91,29 +92,42 @@ async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 20)
                             throw new Error('Token lock timeout');
                         }
                         user = await UserModel.findByPk(user.id);
-                        console.log('locked. bypass')
+                        logger.info('locked. bypass')
                         return user;
                     }
                 } else {
                     throw e;
                 }
             }
-            const startRefreshTime = moment();
-            const token = oauthApp.createToken(user.accessToken, user.refreshToken);
-            console.log('token refreshing...')
-            const { accessToken, refreshToken, expires } = await token.refresh();
-            user.accessToken = accessToken;
-            user.refreshToken = refreshToken;
-            user.tokenExpiry = expires;
-            await user.save();
-            if (newLock) {
-                const deletionStartTime = moment();
-                await newLock.delete();
-                const deletionEndTime = moment();
-                console.log(`lock deleted in ${deletionEndTime.diff(deletionStartTime)}ms`)
+            try {
+                const startRefreshTime = moment();
+                const token = oauthApp.createToken(user.accessToken, user.refreshToken);
+                logger.info('token refreshing...')
+                const { accessToken, refreshToken, expires } = await token.refresh();
+                user.accessToken = accessToken;
+                user.refreshToken = refreshToken;
+                user.tokenExpiry = expires;
+                try {
+                    await user.save();
+                }
+                catch (error) {
+                    return handleDatabaseError(error, 'Error saving user');
+                }
+                if (newLock) {
+                    const deletionStartTime = moment();
+                    await newLock.delete();
+                    const deletionEndTime = moment();
+                    logger.info(`lock deleted in ${deletionEndTime.diff(deletionStartTime)}ms`)
+                }
+                const endRefreshTime = moment();
+                logger.info(`token refreshing finished in ${endRefreshTime.diff(startRefreshTime)}ms`)
             }
-            const endRefreshTime = moment();
-            console.log(`token refreshing finished in ${endRefreshTime.diff(startRefreshTime)}ms`)
+            catch (e) {
+                console.log('token refreshing failed', e.stack)
+                if (newLock) {
+                    await newLock.delete();
+                }
+            }
         }
         // case: run without token refresh lock
         else {
@@ -135,7 +149,12 @@ async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 20)
                 user.refreshToken = refreshToken;
                 const date = new Date();
                 user.tokenExpiry = date.setSeconds(date.getSeconds() + expires);
-                await user.save();
+                try {
+                    await user.save();
+                }
+                catch (error) {
+                    return handleDatabaseError(error, 'Error saving user');
+                }
 
             } else {
                 console.log('token refreshing...')
@@ -144,7 +163,12 @@ async function checkAndRefreshAccessToken(oauthApp, user, tokenLockTimeout = 20)
                 user.accessToken = accessToken;
                 user.refreshToken = refreshToken;
                 user.tokenExpiry = expires;
-                await user.save();
+                try {
+                    await user.save();
+                }
+                catch (error) {
+                    return handleDatabaseError(error, 'Error saving user');
+                }
             }
 
             console.log('token refreshing finished')

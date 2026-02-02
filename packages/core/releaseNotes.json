@@ -1,4 +1,128 @@
 {
+    "1.7.12": {
+        "global": [
+            {
+                "type": "New",
+                "description": "A button on Developer settings page to re-initialize user mapping"
+            },
+            {
+                "type": "Better",
+                "description": "Click-to-SMS button is disabled if RingCentral SMS service is not activated"
+            }
+        ]
+    },
+    "1.7.11": {
+        "global": [
+            {
+                "type": "New",
+                "description": "Shared-SMS logging"
+            },
+            {
+                "type": "New",
+                "description": "MCP tools"
+            }
+        ]
+    },
+    "1.7.10": {
+        "global": [
+            {
+                "type": "Fix",
+                "description": "Upon completing warm transfer, it opens contact page for a second time"
+            },
+            {
+                "type": "New",
+                "description": "RingCX RingSense call logging event support for Server-side logging"
+            }
+        ]
+    },
+    "1.7.9": {
+        "global": [
+            {
+                "type": "Better",
+                "description": "Contact match speed optimized"
+            },
+            {
+                "type": "Better",
+                "description": "Minor improvements on calldown list"
+            }
+        ]
+    },
+    "1.7.8": {
+        "global": [
+            {
+                "type": "New",
+                "description": "Error report feature on support page"
+            },
+            {
+                "type": "Better",
+                "description": "Calldown list supports better edit feature"
+            },
+            {
+                "type": "Better",
+                "description": "Connctor selection list can be opened back again"
+            },
+            {
+                "type": "Fix",
+                "description": "Call log record is shown with a wrong number after the call"
+            }
+        ]
+    },
+    "1.7.7": {
+        "global": [
+            {
+                "type": "New",
+                "description": "Admin report company stats now support grouping"
+            },
+            {
+                "type": "New",
+                "description": "Users can open back the platform selection page from user setting page"
+            }
+        ]
+    },
+    "1.7.6": {
+        "global": [
+            {
+                "type": "Fix",
+                "description": "Duplicated contact pop when complete warm transfer"
+            },
+            {
+                "type": "Fix",
+                "description": "Multi-region auth"
+            }
+        ]
+    },
+    "1.7.5": {
+        "global": [
+            {
+                "type": "Fix",
+                "description": "A not found issue for call note cache"
+            },
+            {
+                "type": "Better",
+                "description": "Embedded URL list now defaults to all domain. (Meaning quick access button and click-to-dial widget will be rendered on all web pages by default)"
+            }
+        ]
+    },
+    "1.7.4": {
+        "global": [
+            {
+                "type": "New",
+                "description": "Auto restart server-side logging when call log details setting changed"
+            },
+            {
+                "type": "New",
+                "description": "Support to change quick access button size"
+            },
+            {
+                "type": "New",
+                "description": "Support to open log form when during a call"
+            },
+            {
+                "type": "Fix",
+                "description": "An edge case of unwanted call log in call queue scenario"
+            }
+        ]
+    },
     "1.7.3": {
         "global": [
             {
@@ -36,6 +160,18 @@
             {
                 "type": "New",
                 "description": "Auto log setting for voicemail"
+            }
+        ]
+    },
+    "1.6.12": {
+        "global": [
+            {
+                "type": "New",
+                "description": "Support RingSense logging with server-side logging"
+            },
+            {
+                "type": "Fix",
+                "description": "An edge case of unwanted call log in call queue scenario"
             }
         ]
     },

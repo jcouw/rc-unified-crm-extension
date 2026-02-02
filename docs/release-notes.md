@@ -1,8 +1,66 @@
 # Release notes
 
+## 1.7.14
+
+- New: Clio now supports SMS time tracking
+
+## 1.7.12
+
+- New: A button on Developer settings page to re-initialize user mapping
+- Better: Click-to-SMS button is disabled if RingCentral SMS service is not activated
+
+## 1.7.11
+
+- New: Shared-SMS logging
+- New: MCP tools
+- New: Netsuite now supports Lead and Prospect
+
+## 1.7.10
+
+- New: RingCX RingSense call logging event support for Server-side logging
+- Fix: Upon completing warm transfer, it opens contact page for a second time
+
+## 1.7.9
+
+- Better: Contact match speed optimized
+- Better: Minor improvements on calldown list 
+- New: Clio supports Company as new Contact type
+- Fix: Google Sheet and NetSuite warning notifications
+
+## 1.7.8
+
+- New: Error report feature on support page
+- New: Google Sheets admin now can setup target sheet for all users
+- Better: Calldown list supports better edit feature
+- Better: Connctor selection list can be opened back again
+- Fix: Call log record is shown with a wrong number after the call
+
+## 1.7.7
+
+- New: Admin report company stats now support grouping
+- New: Users can open back the platform selection page from user setting page
+
+## 1.7.6
+
+- New: Support to upload image in message as files in Clio
+- Fix: Duplicated contact pop when complete warm transfer
+- Fix: Multi-region auth
+
+## 1.7.5
+
+- Fix: A not found issue for call note cache
+- Better: Embedded URL list now defaults to all domain. (Meaning quick access button and click-to-dial widget will be rendered on all web pages by default)
+
+## 1.7.4
+
+- New: Auto restart server-side logging when call log details setting changed
+- New: Support to change quick access button size
+- New: Support to open log form when during a call
+- Fix: An edge case of unwanted call log in call queue scenario
+
 ## 1.7.3
 
-- New: RingSense data logging in server side logging
+- New: AI Conversation Expert (ACE) data logging in server side logging
 - New: New phone setting item to group phone related settings
 - Better: HUD enabled by default
 - Fix: A small issue on contact search feature
@@ -18,6 +76,49 @@
 ## 1.7.0
 
 Release notes page: https://appconnect.labs.ringcentral.com/2.0/
+
+## 1.6.20
+
+- New: Clio now supports SMS time tracking
+
+## 1.6.19
+
+- New: A button on Developer settings page to re-initialize user mapping
+- New: A banner for official announcements
+- Better: Click-to-SMS button is disabled if RingCentral SMS service is not activated
+
+## 1.6.18
+
+- Fix: Upon completing warm transfer, it opens contact page for a second time
+
+## 1.6.17
+
+- Better: Contact match speed optimized
+- New: Clio supports Company as new Contact type
+- Fix: Google Sheet and NetSuite warning notifications
+
+## 1.6.16
+
+- Fix: Call log record is shown with a wrong number after the call
+
+## 1.6.15
+
+- Fix: Call log record is shown with a wrong number after the call
+
+## 1.6.14
+
+- Fix: Clio authorization issue of mistaking Clio land page as user dashboard page
+- Fix: Duplicated contact pop when complete warm transfer
+
+## 1.6.13
+
+- Fix: A not found issue for call note cache
+- Better: Embedded URL list now defaults to all domain. (Meaning quick access button and click-to-dial widget will be rendered on all web pages by default)
+
+## 1.6.12
+
+- New: Support AI Conversation Expert (ACE) logging with server-side logging
+- Fix: An edge case of unwanted call log in call queue scenario
 
 ## 1.6.11
 
