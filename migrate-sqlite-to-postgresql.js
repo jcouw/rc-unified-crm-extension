@@ -1,6 +1,6 @@
 require('dotenv').config();
 // Ensure your sequelize.js is configured for the Postgres dialect
-const { sequelize } = require('./packages/core/models/sequelize'); 
+const { sequelize } = require('./packages/core/models/sequelize');
 const { AdminConfigModel } = require('./packages/core/models/adminConfigModel');
 const { CacheModel } = require('./packages/core/models/cacheModel');
 const { CallDownListModel } = require('./packages/core/models/callDownListModel');
@@ -46,12 +46,37 @@ async function startMigration() {
 
                 if (rows.length === 0) break;
 
-                // POSTGRES OPTIMIZATION:
-                // We use 'ignoreDuplicates' which tells PostgreSQL: "ON CONFLICT DO NOTHING".
-                // This replaces the old manual "findAll" checks and is much faster.
+                const cleanedRows = rows.map(row => {
+                    const newRow = { ...row };
+
+                    // Specific fix for adminConfigs table
+                    if (tableName === 'adminConfigs') {
+                        try {
+                            // Convert the SQLite string back into a real JavaScript Object
+                            newRow.userSettings = JSON.parse(newRow.userSettings);
+                            newRow.customAdapter = JSON.parse(newRow.customAdapter);
+                        } catch (e) {
+                            console.warn(`[${tableName}] Failed to parse JSON for a row, keeping as-is.`);
+                        }
+                    }
+
+                    // Specific fix for users table
+                    if (tableName === 'users') {
+                        try {
+                            // Convert the SQLite string back into a real JavaScript Object
+                            newRow.userSettings = JSON.parse(newRow.userSettings);
+                            newRow.platformAdditionalInfo = JSON.parse(newRow.platformAdditionalInfo);
+                        } catch (e) {
+                            console.warn(`[${tableName}] Failed to parse JSON for a row, keeping as-is.`);
+                        }
+                    }
+
+                    return newRow;
+                });
+
                 try {
-                    if (rows.length > 0) {
-                        await model.bulkCreate(rows, {
+                    if (cleanedRows.length > 0) {
+                        await model.bulkCreate(cleanedRows, {
                             ignoreDuplicates: true, // Native Postgres conflict handling
                             hooks: false,
                             logging: false
@@ -59,8 +84,6 @@ async function startMigration() {
                     }
                 } catch (insertError) {
                     console.error(`[${tableName}] Batch insert error:`, insertError.message);
-                    // If a specific row is causing a type error, you might need 
-                    // to log the rows and investigate.
                 }
 
                 totalMigrated += rows.length;

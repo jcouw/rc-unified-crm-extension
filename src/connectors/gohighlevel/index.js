@@ -116,7 +116,16 @@ async function getUserInfo({ authHeader, additionalInfo, data }) {
 
 async function unAuthorize({ user }) {
     console.log("[RC App] unAuthorize");
-    await user.destroy();
+    // Clear credentials instead of destroying the user
+    user.accessToken = '';
+    user.refreshToken = '';
+    user.tokenExpiry = null;
+    try {
+        await user.save();
+    }
+    catch (error) {
+        return handleDatabaseError(error, 'Error saving user');
+    }
     return {
         returnMessage: {
             messageType: 'success',
@@ -270,16 +279,6 @@ async function getCallLog({ user, callLogId, contactId, authHeader }) {
             let noteResp = null
             noteResp = await getGHLNote(authHeader, contactId, callLogNoteId);
 
-            // // split note, we expect the note to have "subject, then newlines, then actual note"
-            // // unfortunately GHL only has a note body so this is the only way
-            // const result = splitAtFirstNewline(noteResp.note.body);
-            // let note = '';
-            // if (noteResp.note.body.indexOf('- Agent note: ') > -1) {
-            //     note = noteResp.note.body.split('- Agent note: ')[1];
-            // }
-
-            // getLogRes = { subject: result.part1, note: note };
-
             let subjectRegex = /- Summary: ([^\n]*)\n*/;
             let match = subjectRegex.exec(noteResp.note.body);
             let existingSubject = null;
@@ -334,17 +333,13 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
     try {
         let callLogNoteId = existingCallLog.thirdPartyLogId;
         let contactId = existingCallLog.contactId;
-        // let splitted = existingCallLog.thirdPartyLogId.split('-');
-        // let contactId = null;
-        // let callLogNoteId = null;
-        // if (splitted.length > 1) {
-        //     contactId = splitted[0];
-        //     callLogNoteId = splitted[1];
-        //     console.log('[RC App] updateCallLog got ids', contactId, callLogNoteId);
-        // }
 
         let noteResp = null
         noteResp = await getGHLNote(authHeader, contactId, callLogNoteId);
+
+        // had issues where logFormat was not picked up from manifes.json, so hardcode here
+        if(user.userSettings)
+            user.userSettings.logFormat = "text/plain";
 
         let logBody = noteResp.note.body;
         if (!!subject && (user.userSettings?.addCallLogSubject?.value ?? true)) { logBody = composer.upsertCallSubject({ body: logBody, subject, logFormat: user.userSettings?.logFormat }); }
@@ -369,9 +364,6 @@ async function updateCallLog({ user, existingCallLog, authHeader, recordingLink,
                 if (user.userSettings?.addRingCentralUserName?.value ?? true) { logBody = composer.upsertRingCentralNumberAndExtension({ body: logBody, extension: ringcentralExtensionNumber ?? '', logFormat: user.userSettings?.logFormat }); }
             }
         }
-
-        console.log('[RC App] updateCallLog user.userSettings?.addCallLogLegs?.value', user.userSettings?.addCallLogLegs?.value);
-        console.log('[RC App] updateCallLog existingCallLog.legs', legs);
 
         if (user.userSettings?.addCallLogLegs?.value ?? true) { logBody = composer.upsertLegs({ body: logBody, legs: legs, logFormat: user.userSettings?.logFormat }); }
         if (user.userSettings?.addCallLogRingSenseRecordingTranscript?.value ?? true) { logBody = composer.upsertRingSenseTranscript({ body: logBody, transcript: ringSenseTranscript, logFormat: user.userSettings?.logFormat }); }
